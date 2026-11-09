@@ -1,0 +1,910 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Data Traces – Wear and Tear</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="only light" />
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      /* ================= PAGE ================= */
+      #stage {
+        --tw: min(100%, 1000px); /* shared width of table and metrics */
+        padding: 0 14px; /* same side margins as the corner info */
+        position: relative;
+        z-index: 6; /* above #ghosts (4) and #wear (5): text always on top */
+        font-weight: 400; /* regular everywhere */
+        counter-reset: sec; /* chapter numbers run through the whole page */
+      }
+      h1,
+      h2,
+      h3,
+      th {
+        font-weight: 400; /* browsers make these bold by default */
+      }
+
+      /* corner info top left: only the first row (the first two cells) */
+      #hud-l > :nth-child(n + 3) {
+        display: none;
+      }
+
+      /* title: ALL CAPS, 48px */
+      h1 {
+        font-size: 48px;
+        text-transform: uppercase;
+      }
+
+      /* ---- scroll snap: one topic per screen ---- */
+      html {
+        scroll-snap-type: y mandatory;
+      }
+      .hero,
+      #tblsec,
+      .dsec {
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+      }
+
+      /* ---- chapters: serif, ALL CAPS, small text 16px ---- */
+      #tblsec,
+      .dsec {
+        min-height: 100vh;
+        min-height: 100svh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 24px 0;
+        font-family: "Times New Roman", Times, serif;
+        font-size: 16px;
+        line-height: 1.25;
+        text-transform: uppercase;
+        filter: blur(0.4px);
+      }
+
+      /* chapter heading: 48px, roman numeral left, 01/02/... right, rule below */
+      h2 {
+        counter-increment: sec;
+        display: grid;
+        grid-template-columns: 1fr minmax(0, 3fr) 1fr;
+        column-gap: 12px;
+        align-items: start;
+        margin: 0 0 20px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--fg);
+        font-size: 48px;
+        line-height: 1;
+        text-align: center;
+      }
+      h2::before {
+        content: counter(sec, upper-roman);
+        text-align: left;
+      }
+      h2::after {
+        content: counter(sec, decimal-leading-zero);
+        text-align: right;
+      }
+
+      .sub {
+        margin: 0 0 16px;
+        text-align: center;
+      }
+      .note {
+        margin: 14px auto 0;
+        max-width: 150ch;
+        text-align: center;
+        opacity: 0.85;
+      }
+
+      /* build-up: lines appear one after another when the chapter is in view */
+      .rv {
+        opacity: 0;
+        transform: translateY(6px);
+        transition:
+          opacity 0.9s cubic-bezier(0.22, 0.61, 0.36, 1),
+          transform 0.9s cubic-bezier(0.22, 0.61, 0.36, 1);
+        transition-delay: 0s; /* on leaving: reset immediately */
+      }
+      .show .rv {
+        opacity: var(--o, 1);
+        transform: none;
+        transition-delay: calc(var(--i) * 110ms); /* build-up speed */
+      }
+      .note .rv {
+        display: block; /* one line per span, transforms need block */
+      }
+
+      /* ================= 01 · TABLE ================= */
+      table {
+        --table-spacing: 0.02em;
+        width: var(--tw);
+        max-width: 100%;
+        margin: 0 auto; /* centred; text inside stays left-aligned */
+        border-collapse: collapse;
+        line-height: 1.1;
+        letter-spacing: var(--table-spacing);
+      }
+      th,
+      td {
+        padding: 2px 18px 2px 0; /* row spacing: first two values */
+        text-align: left;
+        vertical-align: middle;
+      }
+      thead th {
+        padding-bottom: 8px;
+      }
+      tbody tr:first-child td {
+        padding-top: 12px;
+      }
+      /* column gaps */
+      th.no,
+      td.no {
+        padding-right: 80px; /* 1 -> 2 */
+      }
+      th.me,
+      td.me {
+        padding-right: 180px; /* 2 -> 3 */
+      }
+      th.t0,
+      td.t0 {
+        padding-right: 80px; /* 3 -> 4 */
+      }
+
+      /* rows build up one after another */
+      #tblsec tr {
+        opacity: 0;
+        transform: translateY(6px);
+        transition:
+          opacity 0.9s cubic-bezier(0.22, 0.61, 0.36, 1),
+          transform 0.9s cubic-bezier(0.22, 0.61, 0.36, 1);
+        transition-delay: 0s; /* on leaving: reset immediately */
+      }
+      #tblsec thead tr {
+        --i: 0;
+      }
+      #tblsec.show tr {
+        opacity: 1;
+        transform: none;
+        transition-delay: calc(var(--i) * 90ms); /* build-up speed */
+      }
+
+      /* ================= 02 · ALL METRICS IN ONE GRAPH ================= */
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 4px 20px;
+        margin: 0 0 14px;
+      }
+      .legend button {
+        font: inherit;
+        letter-spacing: inherit;
+        text-transform: inherit;
+        color: var(--fg);
+        background: transparent;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .legend button .dot {
+        width: 7px;
+        height: 7px;
+        flex: none;
+        border: 1px solid var(--fg);
+        border-radius: 50%;
+        background: var(--fg); /* selected: filled */
+        transition: background 0.3s ease;
+      }
+      .legend button.off .dot {
+        background: transparent; /* not selected: outline only */
+      }
+      #combo {
+        display: block;
+        width: 100%;
+        height: 420px;
+      }
+
+      /* ================= 03 · EACH METRIC ================= */
+      /* one line: name | value | graph | change in % */
+      .grid {
+        width: var(--tw);
+        max-width: 100%;
+        margin: 0 auto;
+        counter-reset: c;
+      }
+      .card {
+        display: grid;
+        grid-template-columns:
+          minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 3fr)
+          minmax(0, 0.6fr);
+        column-gap: 24px;
+        align-items: center;
+        padding: 3px 0;
+      }
+
+      .card h3,
+      .card .val {
+        margin: 0;
+        font-size: inherit;
+        line-height: inherit;
+        text-align: left;
+      }
+      .card .pct {
+        margin: 0;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .card canvas {
+        display: block;
+        width: 100%;
+        height: 22px;
+      }
+
+      /* text lines: softer, slower, one after another */
+      .card.rv {
+        transform: translateY(6px);
+        transition:
+          opacity 1.3s cubic-bezier(0.22, 0.61, 0.36, 1),
+          transform 1.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+      }
+      .show .card.rv {
+        transition-delay: calc(var(--i) * 120ms); /* speed of the row build-up */
+      }
+
+      /* ================= 04 · DECAY LEVELS ================= */
+      ol.tiers {
+        list-style: none;
+        margin: 0 0 24px;
+        padding: 0;
+        text-align: center;
+      }
+      ol.tiers li {
+        display: grid;
+        grid-template-columns: 1fr minmax(0, 3fr) 1fr; /* same layout as the headings */
+        column-gap: 12px;
+        width: var(--tw);
+        margin: 0 auto;
+        padding: 1px 0;
+        --o: 0.4;
+      }
+      ol.tiers li .tpct {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      ol.tiers li.reached {
+        --o: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="bg"><img id="tex" src="/textur.jpg" alt="" /></div>
+    <div id="crt"></div>
+    <div id="grain"></div>
+
+    <a class="back" href="/">ESC</a>
+
+    <div id="stage">
+      <!-- title -->
+      <section class="hero">
+        <h1>Data Traces</h1>
+      </section>
+
+      <!-- I / 01: table -->
+      <section id="tblsec">
+        <h2>All live measurements</h2>
+        <table>
+          <thead>
+            <tr>
+              <th class="no">CODE</th>
+              <th class="me">METRIC</th>
+              <th class="t0">T0</th>
+              <th class="now">Now</th>
+            </tr>
+          </thead>
+          <tbody id="tbl"></tbody>
+        </table>
+      </section>
+
+      <main id="wrap">
+        <!-- II / 02: graphs -->
+        <section class="dsec">
+          <h2>All metrics in one graph</h2>
+          <p class="sub rv" id="sub"></p>
+          <div class="legend" id="legend"></div>
+          <canvas id="combo" class="rv"></canvas>
+        </section>
+
+        <!-- III / 03: each metric -->
+        <section class="dsec">
+          <h2>Each metric</h2>
+          <div class="grid" id="grid"></div>
+        </section>
+
+        <!-- IV / 04: decay levels -->
+        <section class="dsec">
+          <h2>Decay level of the sub-pages</h2>
+          <ol class="tiers" id="tiers"></ol>
+          <p class="note">
+            <span class="rv"
+              >Every interaction leaves a trace. Clicks, hover time, mouse
+              distance, scroll distance and</span
+            >
+            <span class="rv"
+              >key presses are counted in this browser and weighted into a
+              single value: wear.</span
+            >
+            <span class="rv"
+              >Wear starts at 0 % at t0, the moment of your first visit, and
+              only ever goes up.</span
+            >
+            <span class="rv"
+              >[Each metric contributes with its own weight: e.g. 1 click = x %,
+              1,000 px of mouse travel = y %.]</span
+            >
+          </p>
+          <p class="note">
+            <span class="rv"
+              >The sub-pages read the same value. The more wear has accumulated,
+              the more the interface shows it:</span
+            >
+            <span class="rv"
+              >burn-in on the screen, grey text ghosts, [more noise, blur and
+              distortion].</span
+            >
+            <span class="rv"
+              >Nothing is reset when you close the tab. The state is stored
+              locally and continues at your next visit.</span
+            >
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      window.WT_VIEWER = true;
+    </script>
+    <script src="/grain.js"></script>
+    <script src="/tracker.js"></script>
+    <script src="/burn.js"></script>
+    <script>
+      (function () {
+        var W = window.WT;
+
+        // ---------- helpers ----------
+        // all lines share one colour and are solid
+        var COLOR =
+          getComputedStyle(document.documentElement)
+            .getPropertyValue("--fg")
+            .trim() || "#1c1c1c";
+        var FONT = '400 14px "Times New Roman", Times, serif';
+        var hidden = {};
+        var START = 0; // index of the metric that is active at first in the big graph
+        var easeIO = function (k) {
+          return 0.5 - 0.5 * Math.cos(Math.PI * k); // soft in + out
+        };
+
+        function hexA(h, a) {
+          h = h.replace("#", "");
+          if (h.length === 3) h = h.replace(/(.)/g, "$1$1");
+          var n = parseInt(h, 16);
+          return (
+            "rgba(" +
+            (n >> 16) +
+            "," +
+            ((n >> 8) & 255) +
+            "," +
+            (n & 255) +
+            "," +
+            a +
+            ")"
+          );
+        }
+        function z(n) {
+          return (n < 10 ? "0" : "") + n;
+        }
+        function num(n, dec) {
+          return Number(n || 0).toLocaleString("en-US", {
+            maximumFractionDigits: dec,
+          });
+        }
+        function hms(sec) {
+          sec = Math.max(0, Math.round(sec));
+          var h = Math.floor(sec / 3600),
+            m = Math.floor((sec % 3600) / 60),
+            s = sec % 60;
+          return (h ? h + "h " : "") + (h || m ? m + "min " : "") + s + " s";
+        }
+        function tfmt(t, long) {
+          var x = new Date(t);
+          var hh = z(x.getHours()) + ":" + z(x.getMinutes());
+          if (long)
+            return z(x.getDate()) + "." + z(x.getMonth() + 1) + " " + hh;
+          return hh + ":" + z(x.getSeconds());
+        }
+
+        // ---------- charts ----------
+        // o.small = just the line (no grid, labels)
+        // cv._lp[id] (0..1) = how much of each line is drawn (left -> right)
+        function draw(cv, lines, o) {
+          var dpr = window.devicePixelRatio || 1,
+            w = cv.clientWidth,
+            h = cv.clientHeight;
+          if (!w || !h) return;
+          cv.width = Math.round(w * dpr);
+          cv.height = Math.round(h * dpr);
+          var c = cv.getContext("2d");
+          c.setTransform(dpr, 0, 0, dpr, 0, 0);
+          c.clearRect(0, 0, w, h);
+          var padL = o.small ? 2 : 12,
+            padR = o.small ? 4 : 12,
+            padT = o.small ? 6 : 12,
+            padB = o.small ? 5 : 20;
+          var tmin = Infinity,
+            tmax = -Infinity;
+          lines.forEach(function (l) {
+            l.pts.forEach(function (p) {
+              if (p[0] < tmin) tmin = p[0];
+              if (p[0] > tmax) tmax = p[0];
+            });
+          });
+          if (tmin === Infinity) {
+            tmin = Date.now() - 60000;
+            tmax = Date.now();
+          }
+          var span = tmax - tmin || 1;
+          var max = o.max > 0 ? o.max : 1;
+          var X = function (t) {
+              return padL + ((t - tmin) / span) * (w - padL - padR);
+            },
+            Y = function (v) {
+              return padT + (1 - v / max) * (h - padT - padB);
+            };
+          c.font = FONT;
+          c.fillStyle = COLOR;
+          c.strokeStyle = hexA(COLOR, 0.18); // subtle grid
+          c.lineWidth = 1;
+
+          // grid + labels only for the big graph
+          if (!o.small) {
+            [0, 0.5, 1].forEach(function (f) {
+              var y = Math.round(Y(max * f)) + 0.5;
+              c.beginPath();
+              c.moveTo(padL, y);
+              c.lineTo(w - padR, y);
+              c.stroke();
+            });
+            var long = span > 864e5;
+            c.textAlign = "left";
+            c.fillText(tfmt(tmin, long), padL, h - 5);
+            c.textAlign = "right";
+            c.fillText(tfmt(tmax, long), w - padR, h - 5);
+          }
+
+          // every line grows from left to right along its own path
+          var lp = cv._lp || {};
+          c.lineJoin = "round";
+          c.lineCap = "round";
+          lines.forEach(function (l) {
+            if (!l.pts.length) return;
+            var pr = lp[l.id];
+            if (pr === undefined) pr = cv._off ? 0 : 1;
+            if (pr <= 0) return;
+            var xlim = pr >= 1 ? Infinity : padL + pr * (w - padL - padR);
+            c.strokeStyle = l.color;
+            c.fillStyle = l.color;
+            c.lineWidth = o.small ? 0.9 : 1;
+            c.beginPath();
+            if (l.pts.length === 1) {
+              // a single point: nothing to connect
+              c.moveTo(padL, Y(l.pts[0][1]));
+            } else {
+              for (var i = 0; i < l.pts.length; i++) {
+                var x = X(l.pts[i][0]),
+                  y = Y(l.pts[i][1]);
+                if (x <= xlim || i === 0) {
+                  if (i) c.lineTo(x, y);
+                  else c.moveTo(x, y);
+                } else {
+                  var px = X(l.pts[i - 1][0]),
+                    py = Y(l.pts[i - 1][1]);
+                  if (xlim <= px) break;
+                  c.lineTo(xlim, py + (y - py) * ((xlim - px) / (x - px)));
+                  break;
+                }
+              }
+            }
+            c.stroke();
+          });
+        }
+
+        // ---------- build static parts ----------
+        var legend = document.getElementById("legend");
+        var grid = document.getElementById("grid");
+        var combo = document.getElementById("combo");
+        var tbl = document.getElementById("tbl");
+        var tiersEl = document.getElementById("tiers");
+        var cards = [];
+
+        W.COLS.forEach(function (col, i) {
+          // legend button: filled circle = shown, outline = hidden
+          // at the start only one metric (START) is active
+          var b = document.createElement("button");
+          b.className = "rv";
+          if (i !== START) hidden[i] = true;
+          b.classList.toggle("off", !!hidden[i]);
+          b.innerHTML = '<span class="dot"></span>' + col[1];
+          b.onclick = function () {
+            hidden[i] = !hidden[i];
+            b.classList.toggle("off", !!hidden[i]);
+            if (!hidden[i]) {
+              // newly added line draws itself smoothly from left to right
+              combo._lp = combo._lp || {};
+              combo._lp[i] = 0;
+              render(true);
+              var t0 = performance.now();
+              (function step(now) {
+                var k = Math.min(1, (now - t0) / 2200);
+                combo._lp[i] = easeIO(k);
+                if (combo._redraw) combo._redraw();
+                if (k < 1 && !hidden[i]) requestAnimationFrame(step);
+              })(t0);
+            } else {
+              render(true);
+            }
+          };
+          legend.appendChild(b);
+
+          // metric line: name | value | graph | change in %
+          var card = document.createElement("div");
+          card.className = "card rv";
+          card.innerHTML =
+            "<h3>" +
+            col[1] +
+            (col[2] ? " (" + col[2] + ")" : "") +
+            '</h3><div class="val">0</div><canvas></canvas><div class="pct">0 %</div>';
+          grid.appendChild(card);
+          cards.push({
+            val: card.querySelector(".val"),
+            cv: card.querySelector("canvas"),
+            pct: card.querySelector(".pct"),
+          });
+        });
+
+        W.TIERS.forEach(function (t, i) {
+          var li = document.createElement("li");
+          li.className = "rv";
+          // percentage = wear at which this level starts (t[1] if tracker.js has it,
+          // otherwise evenly spaced from 0 % to 100 %)
+          var p =
+            typeof t[1] === "number"
+              ? t[1]
+              : (i / Math.max(1, W.TIERS.length - 1)) * 100;
+          li.innerHTML =
+            "<span></span><span>" +
+            t[0] +
+            '</span><span class="tpct">' +
+            num(p, 0) +
+            " %</span>";
+          tiersEl.appendChild(li);
+        });
+
+        // build-up: every .rv gets an index (= delay), canvases start empty
+        Array.prototype.forEach.call(
+          document.querySelectorAll(".dsec"),
+          function (sec) {
+            Array.prototype.forEach.call(
+              sec.querySelectorAll(".rv"),
+              function (el, i) {
+                el.style.setProperty("--i", i);
+              },
+            );
+          },
+        );
+        Array.prototype.forEach.call(
+          document.querySelectorAll("canvas"),
+          function (cv) {
+            cv._off = true; // empty until the chapter is scrolled into view
+          },
+        );
+
+        // ---------- render ----------
+        function render(charts) {
+          var s = W.load();
+          if (!s) return;
+          var m = W.derive(s),
+            now = Date.now();
+          document.getElementById("sub").textContent =
+            "Baseline t0: " +
+            z(new Date(s.t0).getDate()) +
+            "." +
+            z(new Date(s.t0).getMonth() + 1) +
+            "." +
+            new Date(s.t0).getFullYear() +
+            ", " +
+            tfmt(s.t0) +
+            "\u2003\u2003all values count from here.";
+
+          var cx = W.live.x !== null ? W.live.x : s.lastX,
+            cy = W.live.y !== null ? W.live.y : s.lastY;
+          var d = new Date(now);
+          var idle = s.lastActive ? (now - s.lastActive) / 1000 : 0;
+          var inSess = s.sessStart && now - (s.lastActive || 0) < W.SESSION_GAP;
+          var NA = "n/a (needs backend)";
+
+          // [metric, value at t0, value now]
+          var rows = [
+            ["Visitors", "0", NA],
+            ["Total clicks", "0", num(s.clicks, 0)],
+            ["Hover time", "0 s", num(s.hover, 1) + " s"],
+            ["Mouse distance", "0 px", num(s.dist, 0) + " px"],
+            ["Cursor speed (peak)", "0 px/s", num(s.maxSpeed, 0) + " px/s"],
+            ["Scroll distance", "0 px", num(s.scroll, 0) + " px"],
+            ["Key presses", "0", num(s.keys, 0)],
+            ["Wear", "0 %", num(m.wear, 2) + " %"],
+            ["Data transferred", "0 KB", num(m.kb, 1) + " KB"],
+            ["Est. energy", "0 Wh", num(m.wh, 3) + " Wh"],
+            ["Est. CO₂", "0 g", num(m.co2, 3) + " g"],
+            ["Ghost copies in DOM", "0", num(s.ghosts, 0)],
+            ["Stored data size", "0 KB", num(m.stored, 1) + " KB"],
+            [
+              "Load time (last page)",
+              "—",
+              s.load !== null && s.load !== undefined ? s.load + " s" : "—",
+            ],
+            ["Site age", "0 days", num((now - s.t0) / 864e5, 3) + " days"],
+            [
+              "Decay level of the sub-pages",
+              "Pristine",
+              W.TIERS[W.tier(m.wear)][0],
+            ],
+            [
+              "Session length",
+              "0 s",
+              inSess ? hms((s.lastActive - s.sessStart) / 1000) : "0 s",
+            ],
+            [
+              "Returning user",
+              "N",
+              (s.visits > 1 ? "Y" : "N") + "; " + (s.visits || 0) + " visit(s)",
+            ],
+            [
+              "Date",
+              "—",
+              z(d.getDate()) +
+                "." +
+                z(d.getMonth() + 1) +
+                "." +
+                d.getFullYear(),
+            ],
+            [
+              "Time",
+              "—",
+              z(d.getHours()) +
+                ":" +
+                z(d.getMinutes()) +
+                ":" +
+                z(d.getSeconds()),
+            ],
+            ["Inactivity", "0 s", hms(idle)],
+            [
+              "Cursor coordinates",
+              "—",
+              cx === null || cx === undefined
+                ? "—"
+                : "X " + Math.round(cx) + " / Y " + Math.round(cy),
+            ],
+            ["User-number", "—", NA],
+            ["Visitors online", "—", NA],
+          ];
+          // a short code for every measurement, same order as `rows`
+          var CODES = [
+            "VI01",
+            "CTO2",
+            "HOV3",
+            "MD04",
+            "CS05",
+            "SD06",
+            "KP07",
+            "WE08",
+            "DT09",
+            "EE10",
+            "C211",
+            "GC12",
+            "SD13",
+            "LT14",
+            "SA15",
+            "DL16",
+            "SL17",
+            "RU18",
+            "DT19",
+            "TI20",
+            "IN21",
+            "CC22",
+            "UN23",
+            "VO24",
+          ];
+
+          // build rows once, afterwards only update the values
+          // (otherwise the build-up animation would restart every second)
+          if (tbl.children.length !== rows.length) {
+            tbl.innerHTML = "";
+            rows.forEach(function (r, i) {
+              var tr = document.createElement("tr");
+              tr.style.setProperty("--i", i + 1);
+              [
+                ["no", CODES[i] || ""],
+                ["me", r[0]],
+                ["t0", r[1]],
+                ["now", r[2]],
+              ].forEach(function (c) {
+                var td = document.createElement("td");
+                td.className = c[0];
+                td.textContent = c[1];
+                tr.appendChild(td);
+              });
+              tbl.appendChild(tr);
+            });
+          } else {
+            rows.forEach(function (r, i) {
+              var tds = tbl.children[i].children;
+              tds[2].textContent = r[1];
+              tds[3].textContent = r[2];
+            });
+          }
+
+          // decay levels (classList: keeps the "rv" class)
+          var ti = W.tier(m.wear);
+          Array.prototype.forEach.call(tiersEl.children, function (li, i) {
+            li.classList.toggle("reached", i <= ti);
+            li.classList.toggle("current", i === ti);
+          });
+
+          // graphs
+          if (charts !== false) {
+            var rows2 = W.series();
+            var combos = [];
+            W.COLS.forEach(function (col, i) {
+              var pts = rows2.map(function (r) {
+                return [r[0], r[i + 1]];
+              });
+              var mx = 0;
+              pts.forEach(function (p) {
+                if (p[1] > mx) mx = p[1];
+              });
+              var last = pts.length ? pts[pts.length - 1][1] : 0;
+              cards[i].val.textContent =
+                num(last, 3) + (col[2] ? " " + col[2] : "");
+
+              // change in %: from the first value above 0 to the current value
+              var base = null;
+              for (var q = 0; q < pts.length; q++)
+                if (pts[q][1] > 0) {
+                  base = pts[q][1];
+                  break;
+                }
+              var ch = base ? ((last - base) / base) * 100 : 0;
+              cards[i].pct.textContent = (ch > 0 ? "+" : "") + num(ch, 1) + " %";
+
+              cards[i].cv._redraw = function () {
+                draw(cards[i].cv, [{ pts: pts, color: COLOR, id: 0 }], {
+                  max: mx,
+                  small: true,
+                });
+              };
+              cards[i].cv._redraw();
+              if (!hidden[i])
+                combos.push({
+                  pts: pts.map(function (p) {
+                    return [p[0], mx > 0 ? p[1] / mx : 0];
+                  }),
+                  color: COLOR,
+                  id: i,
+                });
+            });
+            combo._redraw = function () {
+              draw(combo, combos, { max: 1, pct: true });
+            };
+            combo._redraw();
+          }
+        }
+
+        // ---------- build-up when a chapter is scrolled into view ----------
+        // Section 03: the text lines fade in one after another (CSS).
+        // Afterwards, with a time offset, ALL small graphs start at the same
+        // moment with the same duration, so they draw themselves in parallel.
+        function sweep(sec, on) {
+          // ---- tuning (milliseconds) ----
+          var BIG_DUR = 8000; // big graph: time per line
+          var SMALL_DUR = 5500; // small graphs: time per line (all equal)
+          var GRAPH_START = cards.length * 120 + 400; // offset: graphs start when the last text line arrives
+
+          Array.prototype.forEach.call(
+            sec.querySelectorAll("canvas"),
+            function (cv) {
+              cancelAnimationFrame(cv._raf);
+              cv._lp = {};
+              cv._off = true;
+              if (!on) {
+                if (cv._redraw) cv._redraw(); // leaving: empty again
+                return;
+              }
+              var big = cv.id === "combo";
+              var rv = cv.closest(".rv");
+              var idx = rv ? +rv.style.getPropertyValue("--i") : 0;
+
+              var plan = [];
+              if (big) {
+                for (var j = 0; j < W.COLS.length; j++)
+                  plan.push({ id: j, delay: idx * 110 + 300, dur: BIG_DUR });
+              } else {
+                plan.push({ id: 0, delay: GRAPH_START, dur: SMALL_DUR });
+              }
+
+              var t0 = performance.now();
+              (function step(now) {
+                var done = true;
+                plan.forEach(function (p) {
+                  var k = Math.min(
+                    1,
+                    Math.max(0, (now - t0 - p.delay) / p.dur),
+                  );
+                  cv._lp[p.id] = easeIO(k);
+                  if (k < 1) done = false;
+                });
+                if (cv._redraw) cv._redraw();
+                if (done) cv._off = false;
+                else cv._raf = requestAnimationFrame(step);
+              })(performance.now());
+            },
+          );
+        }
+
+        // ---------- trigger: chapter in view -> .show + sweep ----------
+        // (if burn.js / tracker.js already does this, remove this block)
+        if ("IntersectionObserver" in window) {
+          var io = new IntersectionObserver(
+            function (entries) {
+              entries.forEach(function (e) {
+                var on = e.isIntersecting;
+                e.target.classList.toggle("show", on);
+                sweep(e.target, on);
+              });
+            },
+            { threshold: 0.35 },
+          );
+          Array.prototype.forEach.call(
+            document.querySelectorAll("#tblsec, .dsec"),
+            function (sec) {
+              io.observe(sec);
+            },
+          );
+        }
+
+        // ---------- start ----------
+        render(true);
+        if (document.fonts)
+          document.fonts.ready.then(function () {
+            render(true);
+          });
+        setInterval(function () {
+          render(false);
+        }, 1000);
+        setInterval(function () {
+          render(true);
+        }, 5000);
+        addEventListener("storage", function () {
+          render(true);
+        });
+        addEventListener("resize", function () {
+          render(true);
+        });
+      })();
+    </script>
+  </body>
+</html>

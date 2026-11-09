@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Settled – Wear and Tear</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="only light" />
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      .back {
+        position: fixed;
+        left: 14px;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+        z-index: 20;
+        font-size: 11px;
+        text-transform: uppercase;
+        color: var(--fg);
+        text-decoration: none;
+        filter: blur(0.4px);
+      }
+
+      /* ---- text block: second screen, centred column ---- */
+      .textsec {
+        min-height: 100vh;
+        min-height: 100svh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 0;
+        scroll-snap-align: start;
+      }
+      .textblock {
+        width: 100%;
+        max-width: 1620px;
+        font-family: "Times New Roman", Times, serif;
+        font-size: 16px;
+        line-height: 1.25;
+        text-transform: uppercase;
+        text-align: center; /* Mittelachsensatz */
+        text-wrap: balance; /* gleichmäßigere Zeilenlängen */
+        filter: blur(0.4px);
+        opacity: var(--title-opacity);
+      }
+.textblock:not(.ready) {
+  visibility: hidden;
+}
+      .textblock p {
+        margin: 0 0 1.25em;
+      }
+      .textblock p:last-child {
+        margin-bottom: 0;
+      }
+
+      /* every line animates in on its own, one after another */
+      .textblock .line {
+        display: block;
+        white-space: nowrap;
+        opacity: 0;
+        transform: translateY(10px);
+        transition:
+          opacity 2.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+          transform 3s cubic-bezier(0.22, 1, 0.36, 1);
+        transition-delay: 0s; /* leaving: reset immediately */
+        will-change: opacity, transform;
+      }
+      .textsec.show .line {
+        opacity: 1;
+        transform: none;
+        transition-delay: calc(var(--i) * 260ms); /* speed of the line build-up */
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .textblock .line {
+          transition: none;
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="bg"><img id="tex" src="/textur.jpg" alt="" /></div>
+    <div id="crt"></div>
+    <div id="grain"></div>
+
+    <a class="back" href="/">ESC</a>
+
+    <div id="stage">
+      <section class="hero">
+        <h1>SETTLED</h1>
+      </section>
+
+      <!-- Textblock: Absätze hier ersetzen oder ergänzen -->
+        <section class="textsec" id="text">
+        <div class="textblock">
+          <p>
+            Settled describes something that has reached a stable, established,
+            or well-adjusted condition through use,<br />
+            time, or natural processes.
+            It can refer to an object, material, or surface that has shifted,
+            softened,<br />
+             or adapted into a more consistent state. It often suggests
+            that something is no longer new or changing, <br />but has reached a state
+            of balance and stability.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <script src="/grain.js"></script>
+    <script src="/tracker.js"></script>
+    <script src="/burn.js"></script>
+
+    <script>
+      (function () {
+        var sec = document.getElementById("text");
+        var block = sec.querySelector(".textblock");
+        var ps = Array.prototype.slice.call(block.querySelectorAll("p"));
+        var orig = ps.map(function (p) {
+          return p.innerHTML;
+        });
+
+        // Split every paragraph into the lines the browser actually shows
+        // (also lines created by <br>), wrap each line in its own span.
+        function split() {
+          var idx = 0;
+          var tmp = document.createElement("div");
+          ps.forEach(function (p, n) {
+            var segs = orig[n].split(/<br\s*\/?>/i).map(function (h) {
+              tmp.innerHTML = h;
+              return tmp.textContent.trim().split(/\s+/).filter(Boolean);
+            });
+            p.textContent = "";
+            var words = [];
+            segs.forEach(function (sg, si) {
+              if (si) p.appendChild(document.createElement("br"));
+              sg.forEach(function (w, wi) {
+                if (wi) p.appendChild(document.createTextNode(" "));
+                var s = document.createElement("span");
+                s.textContent = w;
+                p.appendChild(s);
+                words.push(s);
+              });
+            });
+            var lines = [],
+              top = null;
+            words.forEach(function (s) {
+              var t = s.offsetTop;
+              if (top === null || Math.abs(t - top) > 2) {
+                lines.push([]);
+                top = t;
+              }
+              lines[lines.length - 1].push(s.textContent);
+            });
+            p.textContent = "";
+            lines.forEach(function (ws) {
+              var l = document.createElement("span");
+              l.className = "line";
+              l.style.setProperty("--i", idx++);
+              l.textContent = ws.join(" ");
+              p.appendChild(l);
+            });
+          });
+          block.classList.add("ready");
+        }
+
+        function start() {
+          split();
+          var t;
+          addEventListener("resize", function () {
+            clearTimeout(t);
+            t = setTimeout(split, 150);
+          });
+        }
+        if (document.fonts && document.fonts.ready)
+          document.fonts.ready.then(start);
+        else start();
+
+        if (!("IntersectionObserver" in window)) {
+          sec.classList.add("show");
+          return;
+        }
+        new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (e) {
+              e.target.classList.toggle("show", e.isIntersecting);
+            });
+          },
+          { threshold: 0.35 }
+        ).observe(sec);
+      })();
+    </script>
+  </body>
+</html>

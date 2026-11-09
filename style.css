@@ -1,0 +1,346 @@
+/* IBM Plex Mono Light (small type). Loaded from Google Fonts.
+   To host it yourself instead (no request to Google): download IBMPlexMono-Light.woff2,
+   put it in /fonts/, delete the @import line and use this instead:
+   @font-face { font-family: "IBM Plex Mono"; font-weight: 300; font-display: swap;
+                src: url("/fonts/IBMPlexMono-Light.woff2") format("woff2"); }           */
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300&display=swap");
+
+:root {
+  color-scheme: only light;
+  /* ---- THE COLOURS (TEST PALETTE: dark) ---- */
+  --bg: #4a8890; /* near black, slightly warm */
+--fg: #6ee5fb;
+  --title-opacity: 0.92;
+--burn: #0d3150;      /* dunkles Blau, damit die Ghosts auf dem Teal sichtbar bleiben */
+  --line: var(--fg);
+  --muted: var(--fg);
+  /* texture over the background */
+--tex-blend: hue;
+--tex-opacity: 1;
+--tex-filter: none;   /* nicht mehr grayscale, sonst gibt es keinen Farbton zu übertragen */
+
+  /* ---- SMALL TYPE ---- */
+  --mono: "Times New Roman";
+  --mono-spacing: 0.06em; /* letter spacing of all small type: change this value */
+  --big: clamp(20px, 8.5vw, 160px); /* shared font size for title and list */
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html {
+  background: var(--bg);
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+  /* Echtes Einrasten zwischen den Screens. Kein scroll-behavior: smooth,
+     das kämpft gegen das Snapping (vor allem beim Hochscrollen). */
+  scroll-snap-type: y mandatory;
+  overscroll-behavior-y: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg) !important;
+  font:
+    400 14px/1.1 "Times New Roman",
+    Times,
+    serif;
+}
+
+/* Background: flat colour + full-screen texture, blended (see --tex-blend above).
+   Isolated group, so the blend only affects the colour behind it, never the text. */
+#bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--bg);
+  isolation: isolate;
+  overflow: hidden;
+}
+#tex {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  mix-blend-mode: var(--tex-blend);
+  opacity: var(--tex-opacity);
+  filter: var(--tex-filter);
+}
+
+/* very slight blur on all text */
+h1,
+#list,
+.hud,
+#tog {
+  filter: blur(0.4px);
+}
+
+/* All page text lives in #stage: z-index 6 keeps it ABOVE the burn layers
+   (#ghosts = 4, #wear = 5) on every page. Scanlines (9) and grain (30) stay above. */
+#stage {
+  z-index: 6;
+  position: relative;
+  margin: 0 auto;
+  padding: 0 15px;
+}
+
+/* The burn lives on the SCREEN (fixed), not on the page: it stays put while you scroll. */
+#wear {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+  filter: blur(1px) url(#rough);
+}
+#ghosts {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  overflow: hidden;
+  filter: blur(1.0px);
+}
+#ghosts,
+#ghosts * {
+  color: var(--burn) !important; /* burned-in text ghosts are grey */
+}
+#ghosts > * {
+  text-shadow: 0 0 5px var(--burn);
+}
+#crt {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9;
+  background: repeating-linear-gradient(
+    0deg,
+    var(--scanline) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+/* multicolour grain over everything */
+#grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+  opacity: 0.26;
+  background-size: 256px 256px; /* 512px texture shown at 256px = finer grain */
+mix-blend-mode: normal;
+}
+
+/* ---- 1st screen: title, centered ---- */
+.hero {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  scroll-snap-align: start;
+  scroll-snap-stop: always; /* ein Screen nach dem anderen, nichts überspringen */
+}
+h1 {
+  margin: 0;
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: var(--title-opacity);
+}
+
+/* ---- 2nd screen: list (alle 7 Einträge untereinander, zentriert) ---- */
+#list {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 16px;
+  line-height: 1.25;
+  text-transform: uppercase;
+  opacity: var(--title-opacity);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Text-Screens auf Index und Unterseiten */
+.textsec {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+#list ul {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  width: 100%;
+  max-width: 1000px;
+  counter-reset: index-item;
+}
+
+/* Jeder Eintrag nur so hoch wie sein Inhalt */
+#list li {
+  counter-increment: index-item;
+  display: block;
+  position: relative;
+  margin: 0;
+  padding: 0;
+
+  /* Animation beim Scrollen: langsam, weiches Ausklingen */
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 1.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+#list li.show {
+  opacity: 1;
+  transform: none;
+}
+
+/* Gestaffeltes Einblenden (nur beim Einblenden, Ausblenden ohne Verzögerung) */
+#list li.show:nth-child(1) { transition-delay: 0s; }
+#list li.show:nth-child(2) { transition-delay: 0.18s; }
+#list li.show:nth-child(3) { transition-delay: 0.36s; }
+#list li.show:nth-child(4) { transition-delay: 0.54s; }
+#list li.show:nth-child(5) { transition-delay: 0.72s; }
+#list li.show:nth-child(6) { transition-delay: 0.9s; }
+#list li.show:nth-child(7) { transition-delay: 1.08s; }
+
+/* Nummern */
+#list li a {
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 3fr) 1fr;
+  column-gap: 12px;
+  align-items: start;
+
+  width: 100%;
+  padding: 14px 0;
+
+  color: var(--fg);
+  text-decoration: none;
+
+  font-size: 48px;
+  line-height: 1;
+  text-align: center;
+  transition: opacity 0.2s;
+}
+#list li a:hover {
+  opacity: 0.5;
+}
+
+/* Römische Zahlen links */
+#list li a::before {
+  content: counter(index-item, upper-roman);
+  text-align: left;
+}
+
+/* Dezimalzahlen rechts */
+#list li a::after {
+  content: counter(index-item, decimal-leading-zero);
+  text-align: right;
+}
+
+/* ---- corner info (top row: all caps) ---- */
+.hud {
+  position: fixed;
+  z-index: 20;
+  font-size: 11px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  opacity: 1;
+  color: var(--fg);
+  pointer-events: auto;
+cursor: pointer;
+}
+#hud-l {
+  left: 14px;
+  display: grid;
+  grid-template-columns: max-content max-content; /* label | value */
+  column-gap: calc(2em + 2 * var(--mono-spacing)); /* gap label -> value, same in every row */
+  row-gap: 0.6em; /* space between the rows */
+  white-space: nowrap;
+}
+#hud-r {
+  right: 14px;
+  display: flex;
+  gap: 18px;
+}
+#hud-xy {
+  min-width: 14ch;
+  text-align: right;
+}
+#tog {
+  position: fixed;
+  right: 14px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+  z-index: 20;
+  font: inherit;
+  font-size: 11px;
+  color: var(--fg);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+body.bare #stage,
+body.bare .back {
+  visibility: hidden;
+}
+
+/* small type, spacing from --mono-spacing */
+.hud,
+#tog,
+.back,
+.mono {
+  font-family: var(--mono);
+  font-weight: 300;
+  letter-spacing: var(--mono-spacing);
+}
+
+/* "back" link, bottom left, same place on every page (change its text in each page) */
+.back {
+  position: fixed;
+  left: 14px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+  z-index: 20;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--fg);
+  text-decoration: none;
+  filter: blur(0.4px);
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  #list li a {
+    font-size: 36px;
+    grid-template-columns: 0.7fr 2.6fr 0.7fr;
+    column-gap: 8px;
+    padding: 10px 0;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  #list li {
+    transition: none;
+    transform: none;
+  }
+}
