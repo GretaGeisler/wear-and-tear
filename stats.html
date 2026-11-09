@@ -531,6 +531,10 @@
         var tiersEl = document.getElementById("tiers");
         var cards = [];
 
+var visitorNumber = "…";
+var visitorsOnline = "…";
+
+
         W.COLS.forEach(function (col, i) {
           // legend button: filled circle = shown, outline = hidden
           // at the start only one metric (START) is active
@@ -699,8 +703,8 @@
                 ? "—"
                 : "X " + Math.round(cx) + " / Y " + Math.round(cy),
             ],
-            ["User-number", "—", NA],
-            ["Visitors online", "—", NA],
+["User-number", "—", visitorNumber],
+["Visitors online", "—", visitorsOnline],
           ];
           // a short code for every measurement, same order as `rows`
           var CODES = [
