@@ -886,8 +886,46 @@
           );
         }
 
+
+function updateVisitorStats() {
+  fetch("/api/visits")
+    .then(function (response) {
+      if (!response.ok) throw new Error("API error");
+      return response.json();
+    })
+    .then(function (visitors) {
+      var myId = localStorage.getItem("wt2_id");
+      var sorted = visitors.slice().sort(function (a, b) {
+        return a.first - b.first;
+      });
+
+      var myIndex = sorted.findIndex(function (v) {
+        return v.id === myId;
+      });
+
+      visitorNumber = myIndex >= 0 ? String(myIndex + 1) : "—";
+
+      visitorsOnline = String(
+        visitors.filter(function (v) {
+          return Date.now() - v.t < 60000;
+        }).length
+      );
+
+      render(false);
+    })
+    .catch(function (error) {
+      console.error("Visitor stats:", error);
+      visitorNumber = "unavailable";
+      visitorsOnline = "unavailable";
+      render(false);
+    });
+}
+
+
         // ---------- start ----------
         render(true);
+        updateVisitorStats();
+setInterval(updateVisitorStats, 15000);
         if (document.fonts)
           document.fonts.ready.then(function () {
             render(true);
