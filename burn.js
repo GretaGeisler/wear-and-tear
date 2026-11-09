@@ -633,8 +633,7 @@ if (location.pathname !== STATS)
     }
     return pull().then(function () {
       push = function (d) {
-        return fetch(API + "/" + encodeURIComponent(myId), {
-          method: "PUT",
+return fetch(API + "?id=" + encodeURIComponent(myId), {          method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(d),
           keepalive: true,
