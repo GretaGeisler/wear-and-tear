@@ -45,10 +45,10 @@ export default async function handler(req, res) {
           pos: row.pos || {},
         }))
       );
-    } catch (error) {
-      console.error(error);
-      return res.status(500).send("Database error");
-    }
+} catch (error) {
+  console.error(error);
+  return res.status(500).send(String(error.message || error));
+}
   }
 
   // Besucherspur speichern
