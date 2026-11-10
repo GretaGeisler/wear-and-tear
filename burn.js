@@ -12,7 +12,7 @@
   var S = 6; // cell size in px
   var HALO = 24; // soft glow around a cursor burn
   var STILL_MS = 400; // mouse must rest this long before it starts to burn in
-  var BURN_AT = 40; // how much "use" burns a cell to full strength
+  var BURN_AT = 100; // how much "use" burns a cell to full strength
   var CLICK_W = 1,
     HOVER_W = 0.15; // a click = 1 unit, 1 s of resting = 0.15 units
   // elements that can burn in: headings, paragraphs, quotes, list links, .text, or anything with data-burn
