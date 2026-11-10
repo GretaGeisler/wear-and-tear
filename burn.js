@@ -99,6 +99,7 @@
     ly = -1,
     xyDirty = false,
     lastMove = 0,
+    lastScroll = 0,
     restX = -999,
     restY = -999,
     restSince = 0,
@@ -349,10 +350,22 @@
     curCell = null;
   });
 
+  // While the page scrolls (or snaps) the content moves under a resting cursor. Nothing may burn
+  // in then, otherwise the ghosts would jump to every element that passes by.
+  window.addEventListener(
+    "scroll",
+    function () {
+      lastScroll = Date.now();
+      restSince = lastScroll; // the rest timer starts again once the scrolling has stopped
+      restDone = false;
+    },
+    { passive: true, capture: true },
+  );
+
   // hover burn: only while the mouse is RESTING on a spot (not while it moves).
   // After STILL_BURN_MS on the same spot it burns in at once (like a few clicks).
   setInterval(function () {
-    if (!curCell || document.hidden) return;
+    if (!curCell || document.hidden || Date.now() - lastScroll < 400) return;
     var still = Date.now() - restSince;
 
     if (!restDone && still >= STILL_BURN_MS && still < STILL_BURN_MS + 2000) {
