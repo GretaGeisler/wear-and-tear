@@ -253,7 +253,9 @@
           transform 1.3s cubic-bezier(0.22, 0.61, 0.36, 1);
       }
       .show .card.rv {
-        transition-delay: calc(var(--i) * 120ms); /* speed of the row build-up */
+        transition-delay: calc(
+          var(--i) * 120ms
+        ); /* speed of the row build-up */
       }
 
       /* ================= 04 · DECAY LEVELS ================= */
@@ -531,9 +533,9 @@
         var tiersEl = document.getElementById("tiers");
         var cards = [];
 
-var visitorNumber = "…";
-var visitorsOnline = "…";
-
+        var visitorNumber = "…";
+        var visitorsOnline = "…";
+        var visitorsTotal = "…";
 
         W.COLS.forEach(function (col, i) {
           // legend button: filled circle = shown, outline = hidden
@@ -643,7 +645,7 @@ var visitorsOnline = "…";
 
           // [metric, value at t0, value now]
           var rows = [
-            ["Visitors", "0", NA],
+            ["Visitors", "0", visitorsTotal],
             ["Total clicks", "0", num(s.clicks, 0)],
             ["Hover time", "0 s", num(s.hover, 1) + " s"],
             ["Mouse distance", "0 px", num(s.dist, 0) + " px"],
@@ -703,8 +705,8 @@ var visitorsOnline = "…";
                 ? "—"
                 : "X " + Math.round(cx) + " / Y " + Math.round(cy),
             ],
-["User-number", "—", visitorNumber],
-["Visitors online", "—", visitorsOnline],
+            ["User-number", "—", visitorNumber],
+            ["Visitors online", "—", visitorsOnline],
           ];
           // a short code for every measurement, same order as `rows`
           var CODES = [
@@ -793,7 +795,8 @@ var visitorsOnline = "…";
                   break;
                 }
               var ch = base ? ((last - base) / base) * 100 : 0;
-              cards[i].pct.textContent = (ch > 0 ? "+" : "") + num(ch, 1) + " %";
+              cards[i].pct.textContent =
+                (ch > 0 ? "+" : "") + num(ch, 1) + " %";
 
               cards[i].cv._redraw = function () {
                 draw(cards[i].cv, [{ pts: pts, color: COLOR, id: 0 }], {
@@ -890,46 +893,46 @@ var visitorsOnline = "…";
           );
         }
 
+        function updateVisitorStats() {
+          fetch("/api/visits")
+            .then(function (response) {
+              if (!response.ok) throw new Error("API error");
+              return response.json();
+            })
+            .then(function (visitors) {
+              var myId = localStorage.getItem("wt2_id");
+              var sorted = visitors.slice().sort(function (a, b) {
+                return a.first - b.first;
+              });
 
-function updateVisitorStats() {
-  fetch("/api/visits")
-    .then(function (response) {
-      if (!response.ok) throw new Error("API error");
-      return response.json();
-    })
-    .then(function (visitors) {
-      var myId = localStorage.getItem("wt2_id");
-      var sorted = visitors.slice().sort(function (a, b) {
-        return a.first - b.first;
-      });
+              var myIndex = sorted.findIndex(function (v) {
+                return v.id === myId;
+              });
 
-      var myIndex = sorted.findIndex(function (v) {
-        return v.id === myId;
-      });
+              visitorNumber = myIndex >= 0 ? String(myIndex + 1) : "—";
+visitorsTotal = String(visitors.length);
 
-      visitorNumber = myIndex >= 0 ? String(myIndex + 1) : "—";
+              visitorsOnline = String(
+                visitors.filter(function (v) {
+                  return Date.now() - v.t < 60000;
+                }).length,
+              );
 
-      visitorsOnline = String(
-        visitors.filter(function (v) {
-          return Date.now() - v.t < 60000;
-        }).length
-      );
-
-      render(false);
-    })
-    .catch(function (error) {
-      console.error("Visitor stats:", error);
-      visitorNumber = "unavailable";
-      visitorsOnline = "unavailable";
-      render(false);
-    });
-}
-
+              render(false);
+            })
+            .catch(function (error) {
+              console.error("Visitor stats:", error);
+              visitorNumber = "unavailable";
+              visitorsTotal = "unavailable";
+              visitorsOnline = "unavailable";
+              render(false);
+            });
+        }
 
         // ---------- start ----------
         render(true);
         updateVisitorStats();
-setInterval(updateVisitorStats, 15000);
+        setInterval(updateVisitorStats, 15000);
         if (document.fonts)
           document.fonts.ready.then(function () {
             render(true);
