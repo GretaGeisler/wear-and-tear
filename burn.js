@@ -1,7 +1,9 @@
 // Wear and Tear – burn-in. Include on EVERY page:  <script src="/burn.js"></script>
 //
 // - Cursor burns live on the SCREEN (same position on every page).
-// - Text burns (ghosts) belong to the page where they happened.
+// - Text burns (ghosts) live on the SCREEN too: a text you burned in on one page is
+//   still visible as a ghost on every other page (a snapshot of it is stored).
+// - The wear value is shared by all pages.
 // - Your own traces are kept in this browser forever (localStorage).
 // - Traces of ALL visitors are shared through the small server (server.js, /api/visits),
 //   or through the Claude artifact database when hosted as an artifact.
@@ -12,9 +14,10 @@
   var S = 6; // cell size in px
   var HALO = 24; // soft glow around a cursor burn
   var STILL_MS = 400; // mouse must rest this long before it starts to burn in
-  var BURN_AT = 100; // how much "use" burns a cell to full strength
+  var BURN_AT = 80; // how much "use" burns a cell to full strength (higher = slower)
   var CLICK_W = 1,
     HOVER_W = 0.15; // a click = 1 unit, 1 s of resting = 0.15 units
+  var STATS = "/stats.html"; // click on the corner info goes here
   // elements that can burn in: headings, paragraphs, quotes, list links, .text, or anything with data-burn
   var SEL =
     window.WT_SEL ||
@@ -22,13 +25,13 @@
   var API = window.WT_API || "/api/visits";
   var PAGE =
     location.pathname.replace(/index\.html$/, "").replace(/\.html$/, "") || "/";
-  var LKEY = "wt2_burn";
-  var PK = "p:" + PAGE; // counter for everything done on THIS page (clicks / resting time)
+  var LKEY = "wt3_burn";
+  var PK = "p:site"; // ONE wear counter for the whole site (all pages together)
 
   var stage = document.getElementById("stage");
   if (!stage) return;
 
-  // burn colour = --burn in style.css (falls back to the text colour)
+  // burn colour = --burn in style.css (falls back to the text colour). Must be a hex colour.
   function hexToRgb(h) {
     h = (h || "").trim().replace("#", "");
     if (h.length === 3) h = h.replace(/(.)/g, "$1$1");
@@ -80,8 +83,10 @@
 
   // ---- state ----
   // me.pos / others.pos: where on the SCREEN an element was when it was last used
-  var me = { clicks: {}, hover: {}, pos: {} };
-  var others = { clicks: {}, hover: {}, pos: {}, visitors: 0 };
+  // me.snap / others.snap: what the element looked like (text + style), so its ghost can be
+  //                        drawn on OTHER pages too
+  var me = { clicks: {}, hover: {}, pos: {}, snap: {} };
+  var others = { clicks: {}, hover: {}, pos: {}, snap: {}, visitors: 0 };
   var lastHitInfo = "-";
   var dirty = false,
     redraw = true,
@@ -125,14 +130,17 @@
   // Everything we count also goes into `delta`. Saving MERGES the delta into what is stored
   // (it never overwrites), so burns made on other pages or tabs - or a page that comes back from
   // the browser's back/forward cache with old data - can never wipe each other out.
-  var delta = { clicks: {}, hover: {}, pos: {} };
+  var delta = { clicks: {}, hover: {}, pos: {}, snap: {} };
   var needPush = false;
   function readMine() {
     try {
       var v = JSON.parse(lget(LKEY));
-      if (v && v.clicks && v.hover && v.pos) return v;
+      if (v && v.clicks && v.hover && v.pos) {
+        v.snap = v.snap || {};
+        return v;
+      }
     } catch (e) {}
-    return { clicks: {}, hover: {}, pos: {} };
+    return { clicks: {}, hover: {}, pos: {}, snap: {} };
   }
   function hasDelta() {
     for (var kind in delta) for (var k in delta[kind]) return true;
@@ -148,7 +156,8 @@
     for (k in delta.clicks) st.clicks[k] = r2((st.clicks[k] || 0) + delta.clicks[k]);
     for (k in delta.hover) st.hover[k] = r2((st.hover[k] || 0) + delta.hover[k]);
     for (k in delta.pos) st.pos[k] = delta.pos[k];
-    delta = { clicks: {}, hover: {}, pos: {} };
+    for (k in delta.snap) st.snap[k] = delta.snap[k];
+    delta = { clicks: {}, hover: {}, pos: {}, snap: {} };
     me = st;
     if (had) {
       lset(LKEY, JSON.stringify(st));
@@ -170,16 +179,12 @@
     map[k] = Math.round(((map[k] || 0) + v) * 100) / 100;
   }
 
-  // element keys are per page: "e:<page>#<index>"
-  function ekey(i) {
-    return "e:" + PAGE + "#" + i;
+  // element keys are per page: "e:<page>#<link address or index>"
+  // (links use their address, so adding a paragraph above never shifts the burn onto another link)
+  function keyOf(el, i) {
+    var id = el.tagName === "A" ? el.getAttribute("href") : null;
+    return "e:" + PAGE + "#" + (id || i);
   }
-// neu, direkt unter ekey():
-function keyOf(el, i) {
-  var id = el.tagName === "A" ? el.getAttribute("href") : null;
-  return "e:" + PAGE + "#" + (id || i);
-}
-
   function elList() {
     return stage.querySelectorAll(SEL);
   }
@@ -188,9 +193,49 @@ function keyOf(el, i) {
     if (!el || !stage.contains(el)) return null;
     var l = elList();
     for (var i = 0; i < l.length; i++)
-      if (l[i] === el) return { el: el, key: ekey(i) };
+      if (l[i] === el) return { el: el, key: keyOf(l[i], i) };
     return null;
   }
+
+  // The ghost copies the computed look (font, size, colour, spacing) of the element.
+  var LOOK = [
+    "font-family",
+    "font-size",
+    "font-weight",
+    "font-style",
+    "font-variant",
+    "line-height",
+    "letter-spacing",
+    "word-spacing",
+    "text-align",
+    "text-transform",
+    "text-indent",
+    "white-space",
+    "color",
+    "text-decoration",
+    "padding-top",
+    "padding-right",
+    "padding-bottom",
+    "padding-left",
+    "display",
+    "list-style-type",
+  ];
+
+  // a small snapshot of an element: tag, its text (line breaks kept) and its look.
+  // It is what lets the ghost show up on pages where the element does not exist.
+  function snapOf(el) {
+    var cs = getComputedStyle(el),
+      look = {},
+      i;
+    for (i = 0; i < LOOK.length; i++) look[LOOK[i]] = cs.getPropertyValue(LOOK[i]);
+    var txt = (el.innerText || el.textContent || "")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n\s*\n+/g, "\n")
+      .trim()
+      .slice(0, 600);
+    return { tag: el.tagName.toLowerCase(), txt: txt, look: look };
+  }
+
   function mark(h) {
     var r = h.el.getBoundingClientRect();
     var arr = [
@@ -201,6 +246,14 @@ function keyOf(el, i) {
     ];
     me.pos[h.key] = arr;
     delta.pos[h.key] = arr;
+    // snapshot only once per element (it is the same text every time)
+    if (!me.snap[h.key]) {
+      var sn = snapOf(h.el);
+      if (sn.txt) {
+        me.snap[h.key] = sn;
+        delta.snap[h.key] = sn;
+      }
+    }
   }
 
   document.addEventListener(
@@ -267,20 +320,24 @@ function keyOf(el, i) {
     return 1 - Math.exp((-v / BURN_AT) * 2.2); // 0 = pristine, -> 1 = fully burnt
   }
 
+  var ghostSig = "";
   function size() {
     var d = window.devicePixelRatio || 1;
     cv.width = Math.round(window.innerWidth * d);
     cv.height = Math.round(window.innerHeight * d);
     ctx.setTransform(d, 0, 0, d, 0, 0);
+    ghostSig = "";
     redraw = true;
   }
   size();
   window.addEventListener("resize", size);
   window.addEventListener("load", function () {
+    ghostSig = "";
     redraw = true;
   });
   if (document.fonts)
     document.fonts.ready.then(function () {
+      ghostSig = "";
       redraw = true;
     });
 
@@ -337,28 +394,6 @@ function keyOf(el, i) {
 
   // The ghost is a copy living outside the page layout, so CSS rules like ".box p {...}" would not
   // reach it. We copy the computed look (font, size, colour, spacing) onto the copy instead.
-  var LOOK = [
-    "font-family",
-    "font-size",
-    "font-weight",
-    "font-style",
-    "font-variant",
-    "line-height",
-    "letter-spacing",
-    "word-spacing",
-    "text-align",
-    "text-transform",
-    "text-indent",
-    "white-space",
-    "color",
-    "text-decoration",
-    "padding-top",
-    "padding-right",
-    "padding-bottom",
-    "padding-left",
-    "display",
-    "list-style-type",
-  ];
   function copyLook(src, dst) {
     var cs = getComputedStyle(src);
     for (var i = 0; i < LOOK.length; i++)
@@ -368,38 +403,84 @@ function keyOf(el, i) {
     for (var j = 0; j < a.length && j < b.length; j++) copyLook(a[j], b[j]);
   }
 
+  function place(c, pos, a) {
+    c.style.cssText =
+      c.style.cssText +
+      ";position:absolute;margin:0;left:" +
+      (pos[0] + a * 1.5) +
+      "px;top:" +
+      (pos[1] + a * 1.5) +
+      "px;width:" +
+      pos[2] +
+      "px;height:" +
+      pos[3] +
+      "px;opacity:" +
+      Math.min(1, a * 1.6);
+  }
+
   // Burn-in: a copy of each worn element, drawn where it last was ON THE SCREEN.
+  // 1) elements of THIS page: live copies
+  // 2) elements burned in on OTHER pages: rebuilt from their stored snapshot
+  // The ghosts are only rebuilt when something actually changed (no flicker).
   function drawGhosts() {
     var gh = document.getElementById("ghosts"),
       l = elList(),
+      live = {},
+      todo = [],
+      sig = [],
       i,
-      a,
       k,
+      a,
       pos,
-      c;
-    gh.textContent = "";
+      sn;
+
     for (i = 0; i < l.length; i++) {
-      k = ekey(i);
+      k = keyOf(l[i], i);
+      live[k] = 1;
       a = wearAt(k);
       if (a < 0.02) continue;
       pos = me.pos[k] || others.pos[k];
       if (!pos) continue;
-      c = l[i].cloneNode(true);
-      c.removeAttribute("id");
-      copyLook(l[i], c);
-      c.style.cssText = c.style.cssText +
-        ";"+
-        "position:absolute;margin:0;left:" +
-        (pos[0] + a * 1.5) +
-        "px;top:" +
-        (pos[1] + a * 1.5) +
-        "px;width:" +
-        pos[2] +
-        "px;height:" +
-        pos[3] +
-"px;opacity:" + Math.min(1, a * 1.6);
-      gh.appendChild(c);
+      todo.push({ el: l[i], a: a, pos: pos });
+      sig.push(k + ":" + a.toFixed(2) + ":" + pos.join(","));
     }
+
+    var seen = {};
+    [me.snap, others.snap].forEach(function (m) {
+      for (var key in m) {
+        if (seen[key] || live[key] || key.charAt(0) !== "e") continue;
+        seen[key] = 1;
+        var aa = wearAt(key);
+        var pp = me.pos[key] || others.pos[key];
+        var ss = me.snap[key] || others.snap[key];
+        if (aa < 0.02 || !pp || !ss) continue;
+        todo.push({ sn: ss, a: aa, pos: pp });
+        sig.push(key + ":" + aa.toFixed(2) + ":" + pp.join(",") + ":s");
+      }
+    });
+
+    var s = sig.join("|");
+    if (s === ghostSig) return;
+    ghostSig = s;
+    gh.textContent = "";
+
+    todo.forEach(function (t) {
+      var c;
+      if (t.el) {
+        c = t.el.cloneNode(true);
+        c.removeAttribute("id");
+        copyLook(t.el, c);
+      } else {
+        sn = t.sn;
+        c = document.createElement(sn.tag === "a" ? "div" : sn.tag);
+        c.textContent = sn.txt;
+        for (var p in sn.look) c.style.setProperty(p, sn.look[p]);
+        c.style.setProperty("display", "block");
+        c.style.setProperty("white-space", "pre"); // keeps the original line breaks
+      }
+      place(c, t.pos, t.a);
+      gh.appendChild(c);
+    });
   }
   (function loop() {
     if (redraw) {
@@ -415,13 +496,12 @@ function keyOf(el, i) {
   var hudClock = document.getElementById("hud-clock");
 
   // click on the corner info -> stats page
-var STATS = "/stats.html"; // <- Adresse deiner Stats-Seite
-if (location.pathname !== STATS)
-  Array.prototype.forEach.call(document.querySelectorAll(".hud"), function (h) {
-    h.addEventListener("click", function () {
-      location.href = STATS;
+  if (location.pathname !== STATS)
+    Array.prototype.forEach.call(document.querySelectorAll(".hud"), function (h) {
+      h.addEventListener("click", function () {
+        location.href = STATS;
+      });
     });
-  });
 
   function total(m) {
     var t = 0;
@@ -516,6 +596,7 @@ if (location.pathname !== STATS)
       clicks: me.clicks,
       hover: me.hover,
       pos: me.pos,
+      snap: me.snap,
       t: Date.now(),
     };
   }
@@ -562,12 +643,13 @@ if (location.pathname !== STATS)
     }
   });
 
-  // docs: [{id, first, t, clicks, hover, pos}, ...] of ALL visitors
+  // docs: [{id, first, t, clicks, hover, pos, snap}, ...] of ALL visitors
   function ingest(docs) {
     var c = {},
       hv = {},
       ps = {},
       pt = {},
+      sn = {},
       before = 0,
       n = 0;
     docs.forEach(function (v) {
@@ -578,15 +660,17 @@ if (location.pathname !== STATS)
       if (f < myFirst || (f === myFirst && v.id < myId)) before++; // my number = 1 + visitors before me
       for (var k in v.clicks || {}) c[k] = (c[k] || 0) + v.clicks[k];
       for (var j in v.hover || {}) hv[j] = (hv[j] || 0) + v.hover[j];
-      // for each element keep the most recently used screen position
+      // for each element keep the most recently used screen position (and its snapshot)
       for (var e in v.pos || {})
         if (!(e in pt) || t > pt[e]) {
           ps[e] = v.pos[e];
           pt[e] = t;
+          if (v.snap && v.snap[e]) sn[e] = v.snap[e];
         }
     });
-    others = { clicks: c, hover: hv, pos: ps, visitors: n };
+    others = { clicks: c, hover: hv, pos: ps, snap: sn, visitors: n };
     myRank = before + 1;
+    ghostSig = "";
     redraw = true;
     showHud();
   }
@@ -633,7 +717,8 @@ if (location.pathname !== STATS)
     }
     return pull().then(function () {
       push = function (d) {
-return fetch(API + "?id=" + encodeURIComponent(myId), {          method: "PUT",
+        return fetch(API + "/" + encodeURIComponent(myId), {
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(d),
           keepalive: true,
@@ -670,20 +755,20 @@ return fetch(API + "?id=" + encodeURIComponent(myId), {          method: "PUT",
       var l = elList(),
         gh = document.getElementById("ghosts"),
         out = [];
-      out.push("burn.js v3 | page key: " + PAGE);
+      out.push("burn.js v4 | page key: " + PAGE);
       out.push("net: " + net + " | user id: " + myId);
       out.push("burn elements found on this page: " + l.length);
       for (var i = 0; i < l.length && i < 8; i++) {
-        var k = ekey(i);
+        var k = keyOf(l[i], i);
         out.push(
           "  " + l[i].tagName + " \"" + l[i].textContent.trim().slice(0, 18) + "\"  wear=" +
             wearAt(k).toFixed(2) + "  clicks=" + (me.clicks[k] || 0) +
-            "  pos=" + (me.pos[k] ? "yes" : "no"),
+            "  pos=" + (me.pos[k] ? "yes" : "no") + "  snap=" + (me.snap[k] ? "yes" : "no"),
         );
       }
       out.push("ghost copies in #ghosts: " + (gh ? gh.children.length : "NO #ghosts"));
+      out.push("snapshots stored: " + Object.keys(me.snap).length);
       out.push("last click: " + lastHitInfo);
-      out.push("stored burn keys: " + Object.keys(readMine().clicks).filter(function (x) { return x.charAt(0) === "e"; }).join(", "));
       box.textContent = out.join("\n");
     }, 500);
   }
