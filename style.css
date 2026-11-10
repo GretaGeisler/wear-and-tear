@@ -146,7 +146,7 @@ h1,
   pointer-events: none;
   z-index: 4;
   overflow: hidden;
-  filter: blur(1px);
+  /* blur and glow are set per ghost in burn.js (sharper for small type) */
 }
 #ghosts,
 #ghosts * {

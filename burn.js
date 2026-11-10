@@ -489,6 +489,16 @@
       pos[3] +
       "px;opacity:" +
       Math.min(1, a * 1.6);
+
+    // sharper for small type: blur and glow grow with the font size
+    // (14 px text: ~0.4 px blur, ~2 px glow;  48 px text: 1 px blur, 5 px glow)
+    var fs = parseFloat(c.style.fontSize) || 0;
+    var k = fs ? Math.min(1, fs / 48) : 0.6;
+    c.style.setProperty("filter", "blur(" + (0.15 + 0.85 * k).toFixed(2) + "px)");
+    c.style.setProperty(
+      "text-shadow",
+      "0 0 " + (1 + 4 * k).toFixed(1) + "px var(--burn)",
+    );
   }
 
   // Burn-in: a copy of each worn element, drawn where it last was ON THE SCREEN.
