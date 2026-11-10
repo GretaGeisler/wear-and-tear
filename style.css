@@ -15,8 +15,8 @@
 
   /* ---- colours ---- */
   --bg: #21b2bf; /* page background */
-  --fg: #a1f1ff; /* large text: title, headings, list */
-  --fg-small: #eaffc4; /* small text: corner info, tables, text blocks */
+  --fg: #73eaff; /* large text: title, headings, list */
+  --fg-small: #b9feff; /* small text: corner info, tables, text blocks */
   --burn: #144a77; /* burn-in: cursor, glow, text ghosts (must be a hex colour) */
   --title-opacity: 0.92; /* big title + list: 1 = full colour */
   --scanline: transparent; /* e.g. rgba(0, 0, 0, 0.04) to show scanlines */
