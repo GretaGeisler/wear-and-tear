@@ -8,16 +8,16 @@
 :root {
   color-scheme: only light;
   /* ---- THE COLOURS (TEST PALETTE: dark) ---- */
-  --bg: #4a8890; /* near black, slightly warm */
---fg: #6ee5fb;
+  --bg: #21b2bf; /* near black, slightly warm */
+--fg: #73eaff;
   --title-opacity: 0.92;
---burn: #0d3150;      /* dunkles Blau, damit die Ghosts auf dem Teal sichtbar bleiben */
+--burn: #144a77;      /* dunkles Blau, damit die Ghosts auf dem Teal sichtbar bleiben */
   --line: var(--fg);
   --muted: var(--fg);
   /* texture over the background */
 --tex-blend: hue;
 --tex-opacity: 1;
---tex-filter: none;   /* nicht mehr grayscale, sonst gibt es keinen Farbton zu übertragen */
+--tex-filter: none   /* nicht mehr grayscale, sonst gibt es keinen Farbton zu übertragen */
 
   /* ---- SMALL TYPE ---- */
   --mono: "Times New Roman";
