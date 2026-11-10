@@ -14,6 +14,9 @@
   var S = 6; // cell size in px
   var HALO = 24; // soft glow around a cursor burn
   var STILL_MS = 400; // mouse must rest this long before it starts to burn in
+  var REST_PX = 8; // moving less than this many px still counts as "the same spot"
+  var STILL_BURN_MS = 10000; // resting this long on one spot burns it in at once ...
+  var STILL_BURN = 6; // ... with the weight of this many clicks
   var BURN_AT = 80; // how much "use" burns a cell to full strength (higher = slower)
   var CLICK_W = 1,
     HOVER_W = 0.15; // a click = 1 unit, 1 s of resting = 0.15 units
@@ -21,11 +24,12 @@
   // elements that can burn in: headings, paragraphs, quotes, list links, .text, or anything with data-burn
   var SEL =
     window.WT_SEL ||
-    "h1,h2,h3,h4,h5,h6,p,blockquote,figcaption,#list a,.text,[data-burn]";
+    "h1,h2,h3,h4,h5,h6,p,blockquote,figcaption,#list a,.text," +
+    "td,th,ol.tiers li,.val,.pct,.legend button,canvas,[data-burn]";
   var API = window.WT_API || "/api/visits";
   var PAGE =
     location.pathname.replace(/index\.html$/, "").replace(/\.html$/, "") || "/";
-  var LKEY = "wt3_burn";
+  var LKEY = "wt4_burn";
   var PK = "p:site"; // ONE wear counter for the whole site (all pages together)
 
   var stage = document.getElementById("stage");
@@ -85,7 +89,7 @@
   // me.pos / others.pos: where on the SCREEN an element was when it was last used
   // me.snap / others.snap: what the element looked like (text + style), so its ghost can be
   //                        drawn on OTHER pages too
-  var me = { clicks: {}, hover: {}, pos: {}, snap: {} };
+  var me = { clicks: {}, hover: {}, pos: {}, snap: {}, shot: {} };
   var others = { clicks: {}, hover: {}, pos: {}, snap: {}, visitors: 0 };
   var lastHitInfo = "-";
   var dirty = false,
@@ -95,6 +99,10 @@
     ly = -1,
     xyDirty = false,
     lastMove = 0,
+    restX = -999,
+    restY = -999,
+    restSince = 0,
+    restDone = false,
     writing = false;
   var myId = null,
     myFirst = 0,
@@ -130,17 +138,18 @@
   // Everything we count also goes into `delta`. Saving MERGES the delta into what is stored
   // (it never overwrites), so burns made on other pages or tabs - or a page that comes back from
   // the browser's back/forward cache with old data - can never wipe each other out.
-  var delta = { clicks: {}, hover: {}, pos: {}, snap: {} };
+  var delta = { clicks: {}, hover: {}, pos: {}, snap: {}, shot: {} };
   var needPush = false;
   function readMine() {
     try {
       var v = JSON.parse(lget(LKEY));
       if (v && v.clicks && v.hover && v.pos) {
         v.snap = v.snap || {};
+        v.shot = v.shot || {};
         return v;
       }
     } catch (e) {}
-    return { clicks: {}, hover: {}, pos: {}, snap: {} };
+    return { clicks: {}, hover: {}, pos: {}, snap: {}, shot: {} };
   }
   function hasDelta() {
     for (var kind in delta) for (var k in delta[kind]) return true;
@@ -157,7 +166,8 @@
     for (k in delta.hover) st.hover[k] = r2((st.hover[k] || 0) + delta.hover[k]);
     for (k in delta.pos) st.pos[k] = delta.pos[k];
     for (k in delta.snap) st.snap[k] = delta.snap[k];
-    delta = { clicks: {}, hover: {}, pos: {}, snap: {} };
+    for (k in delta.shot) st.shot[k] = delta.shot[k];
+    delta = { clicks: {}, hover: {}, pos: {}, snap: {}, shot: {} };
     me = st;
     if (had) {
       lset(LKEY, JSON.stringify(st));
@@ -183,7 +193,7 @@
   // (links use their address, so adding a paragraph above never shifts the burn onto another link)
   function keyOf(el, i) {
     var id = el.tagName === "A" ? el.getAttribute("href") : null;
-    return "e:" + PAGE + "#" + (id || i);
+    return "e:" + PAGE + "@" + (id || i);
   }
   function elList() {
     return stage.querySelectorAll(SEL);
@@ -233,7 +243,35 @@
       .replace(/\n\s*\n+/g, "\n")
       .trim()
       .slice(0, 600);
-    return { tag: el.tagName.toLowerCase(), txt: txt, look: look };
+    return {
+      tag: el.tagName.toLowerCase(),
+      txt: txt,
+      look: look,
+      canvas: el.tagName === "CANVAS",
+    };
+  }
+
+  // A graph (canvas) cannot be cloned like text, so we keep a small picture of it,
+  // painted in the burn colour. It stays in this browser only (not sent to the server).
+  var shotTaken = {};
+  function shotOf(src) {
+    try {
+      var w = Math.min(1000, src.width),
+        sc = w / src.width,
+        h = Math.max(1, Math.round(src.height * sc));
+      var o = document.createElement("canvas");
+      o.width = w;
+      o.height = h;
+      var c = o.getContext("2d");
+      c.drawImage(src, 0, 0, w, h);
+      c.globalCompositeOperation = "source-in";
+      c.fillStyle = "rgb(" + FGRGB + ")";
+      c.fillRect(0, 0, w, h);
+      var url = o.toDataURL("image/png");
+      return url.length < 150000 ? url : null;
+    } catch (e) {
+      return null;
+    }
   }
 
   function mark(h) {
@@ -249,9 +287,18 @@
     // snapshot only once per element (it is the same text every time)
     if (!me.snap[h.key]) {
       var sn = snapOf(h.el);
-      if (sn.txt) {
+      if (sn.txt || sn.canvas) {
         me.snap[h.key] = sn;
         delta.snap[h.key] = sn;
+      }
+    }
+    // picture of a graph: once per page visit
+    if (h.el.tagName === "CANVAS" && !shotTaken[h.key]) {
+      shotTaken[h.key] = 1;
+      var sh = shotOf(h.el);
+      if (sh) {
+        me.shot[h.key] = sh;
+        delta.shot[h.key] = sh;
       }
     }
   }
@@ -285,7 +332,15 @@
       curCell = cellAt(e);
       lx = e.clientX;
       ly = e.clientY;
-      lastMove = Date.now();
+      var nowT = Date.now();
+      lastMove = nowT;
+      // still on the same spot (within REST_PX)? then the rest timer keeps running
+      if (Math.abs(lx - restX) > REST_PX || Math.abs(ly - restY) > REST_PX) {
+        restX = lx;
+        restY = ly;
+        restSince = nowT;
+        restDone = false;
+      }
       xyDirty = true;
     },
     true,
@@ -294,11 +349,29 @@
     curCell = null;
   });
 
-  // hover burn: only while the mouse is RESTING on a spot (not while it moves)
+  // hover burn: only while the mouse is RESTING on a spot (not while it moves).
+  // After STILL_BURN_MS on the same spot it burns in at once (like a few clicks).
   setInterval(function () {
-    var still = Date.now() - lastMove;
-    if (!curCell || document.hidden || still < STILL_MS || still > 15000)
-      return;
+    if (!curCell || document.hidden) return;
+    var still = Date.now() - restSince;
+
+    if (!restDone && still >= STILL_BURN_MS && still < STILL_BURN_MS + 2000) {
+      restDone = true;
+      add(me.clicks, curCell, STILL_BURN);
+      add(delta.clicks, curCell, STILL_BURN);
+      add(me.clicks, PK, STILL_BURN);
+      add(delta.clicks, PK, STILL_BURN);
+      var bh = hit(document.elementFromPoint(lx, ly));
+      if (bh) {
+        add(me.clicks, bh.key, STILL_BURN);
+        add(delta.clicks, bh.key, STILL_BURN);
+        mark(bh);
+      }
+      dirty = true;
+      redraw = true;
+    }
+
+    if (still < STILL_MS || still > 15000) return;
     add(me.hover, curCell, 0.1);
     add(delta.hover, curCell, 0.1);
     add(me.hover, PK, 0.1);
@@ -419,7 +492,7 @@
   }
 
   // Burn-in: a copy of each worn element, drawn where it last was ON THE SCREEN.
-  // 1) elements of THIS page: live copies
+  // 1) elements of THIS page: live copies (graphs: the stored picture)
   // 2) elements burned in on OTHER pages: rebuilt from their stored snapshot
   // The ghosts are only rebuilt when something actually changed (no flicker).
   function drawGhosts() {
@@ -432,7 +505,7 @@
       k,
       a,
       pos,
-      sn;
+      shot;
 
     for (i = 0; i < l.length; i++) {
       k = keyOf(l[i], i);
@@ -441,8 +514,15 @@
       if (a < 0.02) continue;
       pos = me.pos[k] || others.pos[k];
       if (!pos) continue;
-      todo.push({ el: l[i], a: a, pos: pos });
-      sig.push(k + ":" + a.toFixed(2) + ":" + pos.join(","));
+      shot = null;
+      if (l[i].tagName === "CANVAS") {
+        shot = me.shot[k];
+        if (!shot) continue; // no picture of this graph taken yet
+      }
+      todo.push({ el: l[i], a: a, pos: pos, shot: shot });
+      sig.push(
+        k + ":" + a.toFixed(2) + ":" + pos.join(",") + (shot ? ":c" + shot.length : ""),
+      );
     }
 
     var seen = {};
@@ -454,8 +534,15 @@
         var pp = me.pos[key] || others.pos[key];
         var ss = me.snap[key] || others.snap[key];
         if (aa < 0.02 || !pp || !ss) continue;
-        todo.push({ sn: ss, a: aa, pos: pp });
-        sig.push(key + ":" + aa.toFixed(2) + ":" + pp.join(",") + ":s");
+        var sh = null;
+        if (ss.canvas) {
+          sh = me.shot[key];
+          if (!sh) continue;
+        }
+        todo.push({ sn: ss, a: aa, pos: pp, shot: sh });
+        sig.push(
+          key + ":" + aa.toFixed(2) + ":" + pp.join(",") + ":s" + (sh ? sh.length : ""),
+        );
       }
     });
 
@@ -466,13 +553,18 @@
 
     todo.forEach(function (t) {
       var c;
-      if (t.el) {
+      if (t.shot) {
+        c = document.createElement("img");
+        c.src = t.shot;
+        c.alt = "";
+        c.style.objectFit = "fill";
+      } else if (t.el) {
         c = t.el.cloneNode(true);
         c.removeAttribute("id");
         copyLook(t.el, c);
       } else {
-        sn = t.sn;
-        c = document.createElement(sn.tag === "a" ? "div" : sn.tag);
+        var sn = t.sn;
+        c = document.createElement("div");
         c.textContent = sn.txt;
         for (var p in sn.look) c.style.setProperty(p, sn.look[p]);
         c.style.setProperty("display", "block");
@@ -767,7 +859,8 @@
         );
       }
       out.push("ghost copies in #ghosts: " + (gh ? gh.children.length : "NO #ghosts"));
-      out.push("snapshots stored: " + Object.keys(me.snap).length);
+      out.push("snapshots stored: " + Object.keys(me.snap).length + " | graph pictures: " + Object.keys(me.shot).length);
+      out.push("rest timer: " + Math.round((Date.now() - restSince) / 1000) + " s (burns at " + STILL_BURN_MS / 1000 + " s)");
       out.push("last click: " + lastHitInfo);
       box.textContent = out.join("\n");
     }, 500);
