@@ -212,7 +212,7 @@
       /* ================= 03 · EACH METRIC ================= */
       /* one line: name | value | graph | change in % */
       .grid {
-        width: var(--tw);
+        width: min(100%, 1400px); /* wider box */
         max-width: 100%;
         margin: 0 auto;
         counter-reset: c;
@@ -220,8 +220,8 @@
       .card {
         display: grid;
         grid-template-columns:
-          minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 3fr)
-          minmax(0, 0.6fr);
+          minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 3fr)
+          minmax(0, 0.7fr);
         column-gap: 24px;
         align-items: center;
         padding: 3px 0;
@@ -239,6 +239,11 @@
         text-align: right;
         font-variant-numeric: tabular-nums;
       }
+      .card h3,
+      .card .val,
+      .card .pct {
+        white-space: nowrap; /* always one line */
+      }
       .card canvas {
         display: block;
         width: 100%;
@@ -253,9 +258,7 @@
           transform 1.3s cubic-bezier(0.22, 0.61, 0.36, 1);
       }
       .show .card.rv {
-        transition-delay: calc(
-          var(--i) * 120ms
-        ); /* speed of the row build-up */
+        transition-delay: calc(var(--i) * 120ms); /* speed of the row build-up */
       }
 
       /* ================= 04 · DECAY LEVELS ================= */
@@ -533,9 +536,37 @@
         var tiersEl = document.getElementById("tiers");
         var cards = [];
 
+        // ---------- visitor numbers (filled from /api/visits) ----------
+        var visitorsTotal = "…";
         var visitorNumber = "…";
         var visitorsOnline = "…";
-        var visitorsTotal = "…";
+
+        // ---------- own activity tracking (seconds) ----------
+        var lastAct = Date.now(); // last mouse move / click / key / scroll on this page
+        [
+          "pointermove",
+          "pointerdown",
+          "keydown",
+          "scroll",
+          "wheel",
+          "touchstart",
+        ].forEach(function (ev) {
+          addEventListener(
+            ev,
+            function () {
+              lastAct = Date.now();
+            },
+            { passive: true, capture: true },
+          );
+        });
+
+        // session start: stays the same across pages in this tab, resets when the tab is closed
+        var sessStart = Date.now();
+        try {
+          var ss = +sessionStorage.getItem("wt_sess_start");
+          if (ss) sessStart = ss;
+          else sessionStorage.setItem("wt_sess_start", String(sessStart));
+        } catch (e) {}
 
         W.COLS.forEach(function (col, i) {
           // legend button: filled circle = shown, outline = hidden
@@ -641,7 +672,8 @@
           var d = new Date(now);
           var idle = s.lastActive ? (now - s.lastActive) / 1000 : 0;
           var inSess = s.sessStart && now - (s.lastActive || 0) < W.SESSION_GAP;
-          var NA = "n/a (needs backend)";
+          var sessSec = Math.round((now - sessStart) / 1000);
+          var idleSec = Math.round((now - lastAct) / 1000);
 
           // [metric, value at t0, value now]
           var rows = [
@@ -669,11 +701,7 @@
               "Pristine",
               W.TIERS[W.tier(m.wear)][0],
             ],
-            [
-              "Session length",
-              "0 s",
-              inSess ? hms((s.lastActive - s.sessStart) / 1000) : "0 s",
-            ],
+            ["Session length", "0 s", num(sessSec, 0) + " s"],
             [
               "Returning user",
               "N",
@@ -697,7 +725,7 @@
                 ":" +
                 z(d.getSeconds()),
             ],
-            ["Inactivity", "0 s", hms(idle)],
+            ["Inactivity", "0 s", num(idleSec, 0) + " s"],
             [
               "Cursor coordinates",
               "—",
@@ -795,8 +823,7 @@
                   break;
                 }
               var ch = base ? ((last - base) / base) * 100 : 0;
-              cards[i].pct.textContent =
-                (ch > 0 ? "+" : "") + num(ch, 1) + " %";
+              cards[i].pct.textContent = (ch > 0 ? "+" : "") + num(ch, 1) + " %";
 
               cards[i].cv._redraw = function () {
                 draw(cards[i].cv, [{ pts: pts, color: COLOR, id: 0 }], {
@@ -893,6 +920,7 @@
           );
         }
 
+        // ---------- visitor stats from the server ----------
         function updateVisitorStats() {
           fetch("/api/visits")
             .then(function (response) {
@@ -904,26 +932,23 @@
               var sorted = visitors.slice().sort(function (a, b) {
                 return a.first - b.first;
               });
-
               var myIndex = sorted.findIndex(function (v) {
                 return v.id === myId;
               });
 
+              visitorsTotal = String(visitors.length);
               visitorNumber = myIndex >= 0 ? String(myIndex + 1) : "—";
-visitorsTotal = String(visitors.length);
-
               visitorsOnline = String(
                 visitors.filter(function (v) {
                   return Date.now() - v.t < 60000;
                 }).length,
               );
-
               render(false);
             })
             .catch(function (error) {
               console.error("Visitor stats:", error);
-              visitorNumber = "unavailable";
               visitorsTotal = "unavailable";
+              visitorNumber = "unavailable";
               visitorsOnline = "unavailable";
               render(false);
             });
