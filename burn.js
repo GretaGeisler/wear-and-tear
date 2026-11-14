@@ -512,7 +512,7 @@
     // (a glow on small type fills the gaps between the letters and looks like a highlighted box)
     var fs = parseFloat(c.style.fontSize) || 0;
     var k = fs ? Math.min(1, fs / 48) : 0.6;
-    c.style.setProperty("filter", "blur(" + (0.25 + 0.85 * k).toFixed(2) + "px)");
+    c.style.setProperty("filter", "blur(" + (0.17 + 0.85 * k).toFixed(2) + "px)");
     c.style.setProperty(
       "text-shadow",
       fs >= 28 ? "0 0 " + (1 + 3 * k).toFixed(1) + "px var(--burn)" : "none",
