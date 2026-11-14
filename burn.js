@@ -20,7 +20,7 @@
   var REST_PX = 8; // moving less than this many px still counts as "the same spot"
   var STILL_BURN_MS = 8000; // resting this long on one spot burns it in at once ...
   var STILL_BURN = 6; // ... with the weight of this many clicks
-  var BURN_AT = 80; // how much "use" burns a cell to full strength (higher = slower)
+  var BURN_AT = 40; // how much "use" burns a cell to full strength (higher = slower)
   var CLICK_W = 0.2,
     HOVER_W = 0.15; // a click = 1 unit, 1 s of resting = 0.15 units
   var STATS = "/stats.html"; // click on the corner info goes here
