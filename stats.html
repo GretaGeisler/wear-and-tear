@@ -683,12 +683,12 @@
             ["Mouse distance", "0 px", num(s.dist, 0) + " px"],
             ["Cursor speed (peak)", "0 px/s", num(s.maxSpeed, 0) + " px/s"],
             ["Scroll distance", "0 px", num(s.scroll, 0) + " px"],
-            ["Key presses", "0", num(s.keys, 0)],
+            ["Key presses", "0", num(Math.max(s.keys || 0, window.WT_BURN ? WT_BURN.keys() : 0), 0)],
             ["Wear", "0 %", num(m.wear, 2) + " %"],
             ["Data transferred", "0 KB", num(m.kb, 1) + " KB"],
             ["Est. energy", "0 Wh", num(m.wh, 3) + " Wh"],
             ["Est. CO₂", "0 g", num(m.co2, 3) + " g"],
-            ["Ghost copies in DOM", "0", num(s.ghosts, 0)],
+            ["Ghost copies (all pages)", "0", num(window.WT_BURN ? WT_BURN.ghosts() : s.ghosts, 0)],
             ["Stored data size", "0 KB", num(m.stored, 1) + " KB"],
             [
               "Load time (last page)",
@@ -802,6 +802,23 @@
           // graphs
           if (charts !== false) {
             var rows2 = W.series();
+            // live: add a point for "now" with the current values, so the time scale
+            // keeps moving and the lines rise while you click
+            if (rows2.length) {
+              var lastRow = rows2[rows2.length - 1];
+              if (now > lastRow[0]) {
+                var liveRow = [now];
+                W.COLS.forEach(function (col, i) {
+                  var v = s[col[0]];
+                  if (typeof v !== "number") v = m[col[0]];
+                  if (window.WT_BURN && col[0] === "keys")
+                    v = Math.max(v || 0, WT_BURN.keys());
+                  if (window.WT_BURN && col[0] === "ghosts") v = WT_BURN.ghosts();
+                  liveRow.push(typeof v === "number" ? v : lastRow[i + 1]);
+                });
+                rows2 = rows2.concat([liveRow]);
+              }
+            }
             var combos = [];
             W.COLS.forEach(function (col, i) {
               var pts = rows2.map(function (r) {
@@ -922,27 +939,19 @@
 
         // ---------- visitor stats from the server ----------
         function updateVisitorStats() {
-          fetch("/api/visits")
+          if (document.hidden) return;
+          var myId = localStorage.getItem("wt2_id") || "";
+          fetch("/api/visits?stats=1&id=" + encodeURIComponent(myId), {
+            cache: "no-store",
+          })
             .then(function (response) {
               if (!response.ok) throw new Error("API error");
               return response.json();
             })
-            .then(function (visitors) {
-              var myId = localStorage.getItem("wt2_id");
-              var sorted = visitors.slice().sort(function (a, b) {
-                return a.first - b.first;
-              });
-              var myIndex = sorted.findIndex(function (v) {
-                return v.id === myId;
-              });
-
-              visitorsTotal = String(visitors.length);
-              visitorNumber = myIndex >= 0 ? String(myIndex + 1) : "—";
-              visitorsOnline = String(
-                visitors.filter(function (v) {
-                  return Date.now() - v.t < 60000;
-                }).length,
-              );
+            .then(function (st) {
+              visitorsTotal = String(st.visitors);
+              visitorNumber = st.rank ? String(st.rank) : "—";
+              visitorsOnline = String(st.online);
               render(false);
             })
             .catch(function (error) {
@@ -957,7 +966,7 @@
         // ---------- start ----------
         render(true);
         updateVisitorStats();
-        setInterval(updateVisitorStats, 15000);
+        setInterval(updateVisitorStats, 5000);
         if (document.fonts)
           document.fonts.ready.then(function () {
             render(true);
@@ -967,7 +976,7 @@
         }, 1000);
         setInterval(function () {
           render(true);
-        }, 5000);
+        }, 1000);
         addEventListener("storage", function () {
           render(true);
         });

@@ -12,7 +12,10 @@
   "use strict";
 
   var S = 6; // cell size in px
-  var HALO = 24; // soft glow around a cursor burn
+  var HALO = 14; // soft glow around a cursor burn
+  var HALO_ALPHA = 0.3; // strongest the glow can get (lower = less "highlighted box" look)
+  var PUSH_MS = 1500; // how often your traces are sent to the server
+  var PULL_MS = 2500; // how often the traces of the others are fetched (= how "live" it is)
   var STILL_MS = 400; // mouse must rest this long before it starts to burn in
   var REST_PX = 8; // moving less than this many px still counts as "the same spot"
   var STILL_BURN_MS = 10000; // resting this long on one spot burns it in at once ...
@@ -90,7 +93,9 @@
   // me.snap / others.snap: what the element looked like (text + style), so its ghost can be
   //                        drawn on OTHER pages too
   var me = { clicks: {}, hover: {}, pos: {}, snap: {}, shot: {} };
-  var others = { clicks: {}, hover: {}, pos: {}, snap: {}, visitors: 0 };
+  var othersShot = {}; // graph pictures of the other visitors
+  var others = { clicks: {}, hover: {}, pos: {}, snap: {}, shot: {}, visitors: 0 };
+  var pullNow = null; // set when the server is reachable: fetch the others right now
   var lastHitInfo = "-";
   var dirty = false,
     redraw = true,
@@ -257,7 +262,7 @@
   var shotTaken = {};
   function shotOf(src) {
     try {
-      var w = Math.min(1000, src.width),
+      var w = Math.min(600, src.width),
         sc = w / src.width,
         h = Math.max(1, Math.round(src.height * sc));
       var o = document.createElement("canvas");
@@ -269,7 +274,7 @@
       c.fillStyle = "rgb(" + FGRGB + ")";
       c.fillRect(0, 0, w, h);
       var url = o.toDataURL("image/png");
-      return url.length < 150000 ? url : null;
+      return url.length < 40000 ? url : null;
     } catch (e) {
       return null;
     }
@@ -450,7 +455,7 @@
       y = (+p[1] + 0.5) * S;
       // faint halo around the burn
       g = ctx.createRadialGradient(x, y, 0, x, y, HALO * 1.6);
-      g.addColorStop(0, "rgba(" + FGRGB + "," + Math.min(1, a * 0.6) + ")");
+      g.addColorStop(0, "rgba(" + FGRGB + "," + Math.min(HALO_ALPHA, a * 0.4) + ")");
       g.addColorStop(1, "rgba(" + FGRGB + ",0)");
       ctx.fillStyle = g;
       ctx.fillRect(x - HALO * 2, y - HALO * 2, HALO * 4, HALO * 4);
@@ -503,14 +508,14 @@
       "px;opacity:" +
       Math.min(1, a * 1.6);
 
-    // sharper for small type: blur and glow grow with the font size
-    // (14 px text: ~0.4 px blur, ~2 px glow;  48 px text: 1 px blur, 5 px glow)
+    // sharper for small type: the blur grows with the font size, and only big type gets a glow
+    // (a glow on small type fills the gaps between the letters and looks like a highlighted box)
     var fs = parseFloat(c.style.fontSize) || 0;
     var k = fs ? Math.min(1, fs / 48) : 0.6;
     c.style.setProperty("filter", "blur(" + (0.15 + 0.85 * k).toFixed(2) + "px)");
     c.style.setProperty(
       "text-shadow",
-      "0 0 " + (1 + 4 * k).toFixed(1) + "px var(--burn)",
+      fs >= 28 ? "0 0 " + (1 + 3 * k).toFixed(1) + "px var(--burn)" : "none",
     );
   }
 
@@ -539,7 +544,7 @@
       if (!pos) continue;
       shot = null;
       if (l[i].tagName === "CANVAS") {
-        shot = me.shot[k];
+        shot = me.shot[k] || others.shot[k];
         if (!shot) continue; // no picture of this graph taken yet
       }
       todo.push({ el: l[i], a: a, pos: pos, shot: shot });
@@ -559,7 +564,7 @@
         if (aa < 0.02 || !pp || !ss) continue;
         var sh = null;
         if (ss.canvas) {
-          sh = me.shot[key];
+          sh = me.shot[key] || others.shot[key];
           if (!sh) continue;
         }
         todo.push({ sn: ss, a: aa, pos: pp, shot: sh });
@@ -604,6 +609,38 @@
     }
     setTimeout(loop, 400);
   })();
+
+  // number of burned-in elements on the whole site (this page, other pages, other visitors)
+  function countGhosts() {
+    var seen = {},
+      n = 0;
+    [me.pos, others.pos].forEach(function (m) {
+      for (var k in m)
+        if (!seen[k] && k.charAt(0) === "e") {
+          seen[k] = 1;
+          if (wearAt(k) >= 0.02) n++;
+        }
+    });
+    return n;
+  }
+
+  // key presses, counted right away and kept across pages
+  document.addEventListener(
+    "keydown",
+    function (e) {
+      if (e.repeat) return;
+      lset("wt_keys", String((+lget("wt_keys") || 0) + 1));
+    },
+    true,
+  );
+
+  // used by the stats page
+  window.WT_BURN = {
+    ghosts: countGhosts,
+    keys: function () {
+      return +lget("wt_keys") || 0;
+    },
+  };
 
   // ---- corner info (only on pages that have it) ----
   var hudL = document.getElementById("hud-l");
@@ -652,12 +689,11 @@
           : "USER #\u2026";
     var first =
       (net === "off" ? "offline\u2003\u2003" : "") + clicks + " clicks";
-    var gh = document.getElementById("ghosts");
     var pg = window.WT && WT.page ? WT.page() : { kb: 0, wh: 0, co2: 0 };
     var rows = [
       [who, first],
       ["WEAR", (wearAt(PK) * 100).toFixed(1) + " %"],
-      ["GHOSTS", String(gh ? gh.children.length : 0)],
+      ["GHOSTS", String(countGhosts())],
       ["DATA", fmtData(pg.kb)],
       ["POWER", pg.wh.toFixed(2) + " WH"],
       ["CO2", pg.co2.toFixed(2) + " G"],
@@ -705,8 +741,30 @@
     });
 
   // ---- shared storage: each visitor writes ONLY their own doc, everyone reads all docs ----
-  function doc() {
-    return {
+  var shotSigSent = "";
+  function shotSig() {
+    var ks = Object.keys(me.shot);
+    return (
+      ks.length +
+      ":" +
+      ks
+        .map(function (x) {
+          return x + me.shot[x].length;
+        })
+        .join(",")
+    );
+  }
+  function shotsForServer() {
+    var out = {};
+    Object.keys(me.shot)
+      .slice(-6)
+      .forEach(function (k) {
+        if (me.shot[k].length < 40000) out[k] = me.shot[k];
+      });
+    return out;
+  }
+  function doc(withShot) {
+    var d = {
       first: myFirst,
       clicks: me.clicks,
       hover: me.hover,
@@ -714,13 +772,20 @@
       snap: me.snap,
       t: Date.now(),
     };
+    if (withShot) d.shot = shotsForServer();
+    return d;
   }
   function flush() {
     commit();
     if (!needPush || !push || writing) return;
     needPush = false;
     writing = true;
-    push(doc())
+    var sig = shotSig(),
+      withShot = sig !== shotSigSent && Object.keys(me.shot).length > 0;
+    push(doc(withShot))
+      .then(function () {
+        if (withShot) shotSigSent = sig;
+      })
       .catch(function () {
         needPush = true;
       })
@@ -728,7 +793,7 @@
         writing = false;
       });
   }
-  setInterval(flush, 3000);
+  setInterval(flush, PUSH_MS);
   window.addEventListener("pagehide", function () {
     commit();
     if (push && needPush) {
@@ -741,6 +806,7 @@
     else {
       commit(); // pick up what other pages or tabs burned meanwhile
       redraw = true;
+      if (pullNow) pullNow();
     }
   });
   // page restored from the back/forward cache, or another tab burned something
@@ -783,7 +849,7 @@
           if (v.snap && v.snap[e]) sn[e] = v.snap[e];
         }
     });
-    others = { clicks: c, hover: hv, pos: ps, snap: sn, visitors: n };
+    others = { clicks: c, hover: hv, pos: ps, snap: sn, shot: othersShot, visitors: n };
     myRank = before + 1;
     ghostSig = "";
     redraw = true;
@@ -818,36 +884,128 @@
   }
 
   function connectApi() {
+    var docsById = {},
+      shotsById = {},
+      since = 0,
+      sinceShot = 0,
+      fails = 0,
+      firstPull = true;
+
+    function getJson(url) {
+      return fetch(url, { cache: "no-store" }).then(function (r) {
+        if (!r.ok) throw 0;
+        return r.json();
+      });
+    }
+
+    // visitor docs: only what changed since the last call
     function pull() {
-      return fetch(API, { cache: "no-store" })
-        .then(function (r) {
-          if (!r.ok) throw 0;
-          return r.json();
+      return getJson(API + "?since=" + since).then(function (res) {
+        var list = res && res.docs;
+        if (!Array.isArray(list)) throw 0;
+        var changed = firstPull;
+        firstPull = false;
+        list.forEach(function (d) {
+          if (!d || !d.id) return;
+          var old = docsById[d.id];
+          if (!old || old.srv !== d.srv) changed = true;
+          docsById[d.id] = d;
+          if (d.srv > since) since = d.srv;
+        });
+        if (changed)
+          ingest(
+            Object.keys(docsById).map(function (k) {
+              return docsById[k];
+            }),
+          );
+      });
+    }
+
+    // graph pictures of the others (change rarely, fetched less often)
+    function pullShots() {
+      return getJson(API + "?shots=1&since=" + sinceShot).then(function (res) {
+        var m = res && res.shots;
+        if (!m) throw 0;
+        var changed = false;
+        for (var id in m) {
+          if (!shotsById[id] || shotsById[id].srv !== m[id].srv) changed = true;
+          shotsById[id] = m[id];
+          if (m[id].srv > sinceShot) sinceShot = m[id].srv;
+        }
+        if (changed) {
+          var merged = {};
+          Object.keys(shotsById).forEach(function (id) {
+            if (id === myId) return;
+            var sh = shotsById[id].shot || {};
+            for (var k in sh) merged[k] = sh[k];
+          });
+          othersShot = merged;
+          others.shot = merged;
+          ghostSig = "";
+          redraw = true;
+        }
+      });
+    }
+
+    function tick() {
+      if (document.hidden) return;
+      pull()
+        .then(function () {
+          fails = 0;
+          if (net !== "on") {
+            net = "on";
+            showHud();
+          }
         })
-        .then(function (list) {
-          if (!Array.isArray(list)) throw 0;
-          ingest(list);
-          return true;
+        .catch(function () {
+          if (++fails >= 3 && net !== "off") {
+            net = "off";
+            showHud();
+          }
         });
     }
-    return pull().then(function () {
-      push = function (d) {
-        return fetch(API + "/" + encodeURIComponent(myId), {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(d),
-          keepalive: true,
-        }).then(function (r) {
-          if (!r.ok) throw 0;
+
+    function begin() {
+      pull()
+        .then(function () {
+          push = function (d) {
+            return fetch(API + "?id=" + encodeURIComponent(myId), {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(d),
+              keepalive: true,
+            }).then(function (r) {
+              if (!r.ok) throw 0;
+            });
+          };
+          pullNow = tick;
+          net = "on";
+          needPush = true;
+          setTimeout(flush, 300); // register this visitor right away
+          showHud();
+          setInterval(tick, PULL_MS);
+          pullShots().catch(function () {});
+          setInterval(function () {
+            if (!document.hidden) pullShots().catch(function () {});
+          }, 8000);
+          // heartbeat: "still here" (counts for "visitors online")
+          var ping = function () {
+            if (document.hidden) return;
+            fetch(API + "?id=" + encodeURIComponent(myId) + "&ping=1", {
+              method: "POST",
+              keepalive: true,
+            }).catch(function () {});
+          };
+          ping();
+          setInterval(ping, 10000);
+        })
+        .catch(function () {
+          net = "off";
+          showHud();
+          setTimeout(begin, 5000); // server not reachable yet: try again
         });
-      };
-      net = "on";
-      needPush = true;
-      setTimeout(flush, 800); // register this visitor right away
-      setInterval(function () {
-        pull().catch(function () {});
-      }, 15000);
-    });
+    }
+    begin();
   }
 
   function offline() {
@@ -855,7 +1013,7 @@
     showHud();
   }
   if (window.claude && claude.use) connectArtifact().catch(offline);
-  else if (window.fetch) connectApi().catch(offline);
+  else if (window.fetch) connectApi();
   else offline();
 
   // ---- diagnosis: open any page with ?debug at the end of the address ----
@@ -871,7 +1029,7 @@
         gh = document.getElementById("ghosts"),
         out = [];
       out.push("burn.js v4 | page key: " + PAGE);
-      out.push("net: " + net + " | user id: " + myId);
+      out.push("net: " + net + " | user id: " + myId + " | others: " + others.visitors);
       out.push("burn elements found on this page: " + l.length);
       for (var i = 0; i < l.length && i < 8; i++) {
         var k = keyOf(l[i], i);
