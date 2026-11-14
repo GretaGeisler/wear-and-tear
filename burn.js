@@ -12,16 +12,16 @@
   "use strict";
 
   var S = 6; // cell size in px
-  var HALO = 14; // soft glow around a cursor burn
+  var HALO = 10; // soft glow around a cursor burn
   var HALO_ALPHA = 0.3; // strongest the glow can get (lower = less "highlighted box" look)
   var PUSH_MS = 1500; // how often your traces are sent to the server
   var PULL_MS = 2500; // how often the traces of the others are fetched (= how "live" it is)
-  var STILL_MS = 400; // mouse must rest this long before it starts to burn in
+  var STILL_MS = 200; // mouse must rest this long before it starts to burn in
   var REST_PX = 8; // moving less than this many px still counts as "the same spot"
-  var STILL_BURN_MS = 10000; // resting this long on one spot burns it in at once ...
+  var STILL_BURN_MS = 8000; // resting this long on one spot burns it in at once ...
   var STILL_BURN = 6; // ... with the weight of this many clicks
   var BURN_AT = 80; // how much "use" burns a cell to full strength (higher = slower)
-  var CLICK_W = 1,
+  var CLICK_W = 0.2,
     HOVER_W = 0.15; // a click = 1 unit, 1 s of resting = 0.15 units
   var STATS = "/stats.html"; // click on the corner info goes here
   // elements that can burn in: headings, paragraphs, quotes, list links, .text, or anything with data-burn
@@ -512,7 +512,7 @@
     // (a glow on small type fills the gaps between the letters and looks like a highlighted box)
     var fs = parseFloat(c.style.fontSize) || 0;
     var k = fs ? Math.min(1, fs / 48) : 0.6;
-    c.style.setProperty("filter", "blur(" + (0.15 + 0.85 * k).toFixed(2) + "px)");
+    c.style.setProperty("filter", "blur(" + (0.25 + 0.85 * k).toFixed(2) + "px)");
     c.style.setProperty(
       "text-shadow",
       fs >= 28 ? "0 0 " + (1 + 3 * k).toFixed(1) + "px var(--burn)" : "none",
