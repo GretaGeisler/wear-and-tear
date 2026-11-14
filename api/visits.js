@@ -1,5 +1,5 @@
 // /api/visits – shared storage for Wear and Tear.
-// Vercel Function + Upstash Redis (no npm packages needed).
+// Vercel Function + Supabase (Postgres via the REST API, no npm packages needed).
 //
 //   GET  /api/visits?since=<ms>            changed visitor docs since <ms>   -> { now, docs: [...] }
 //   GET  /api/visits?shots=1&since=<ms>    changed graph pictures since <ms> -> { now, shots: {id: {srv, shot}} }
@@ -7,42 +7,33 @@
 //   PUT  /api/visits?id=<id>               save the doc of ONE visitor (body = JSON)
 //   POST /api/visits?id=<id>&ping=1        heartbeat ("still online")
 //
-// Environment variables (set automatically when you connect Upstash Redis to the Vercel project):
-//   KV_REST_API_URL + KV_REST_API_TOKEN   (or UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN)
+// Needs the table from supabase-setup.sql and these environment variables
+// (the Vercel x Supabase integration sets them): SUPABASE_URL and SUPABASE_SECRET_KEY.
 
-// find the Redis variables, also when the integration used another prefix (e.g. STORAGE_REST_API_URL)
-function findEnv(names, pattern, skip) {
+function env(names) {
   for (const n of names) if (process.env[n]) return process.env[n];
-  const k = Object.keys(process.env).find(function (key) {
-    return pattern.test(key) && !(skip && skip.test(key));
-  });
-  return k ? process.env[k] : "";
+  return "";
 }
-const BASE = findEnv(["UPSTASH_REDIS_REST_URL", "KV_REST_API_URL"], /REST_(API_)?URL$/).replace(/\/$/, "");
-const TOKEN = findEnv(["UPSTASH_REDIS_REST_TOKEN", "KV_REST_API_TOKEN"], /REST_(API_)?TOKEN$/, /READ_ONLY/);
+const BASE = env(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]).replace(/\/$/, "");
+const KEY = env(["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY"]);
 
+const TABLE = "wt_visits";
 const ONLINE_MS = 30000; // somebody counts as online for 30 s after the last sign of life
 
-// run several Redis commands in one request
-async function redis(commands) {
-  const r = await fetch(BASE + "/pipeline", {
-    method: "POST",
-    headers: { Authorization: "Bearer " + TOKEN, "Content-Type": "application/json" },
-    body: JSON.stringify(commands),
+// call the Supabase REST API. New secret keys (sb_secret_...) go ONLY into the apikey header;
+// the old service_role keys are JWTs and also want the Authorization header.
+async function db(method, path, body, prefer) {
+  const headers = { apikey: KEY, "Content-Type": "application/json" };
+  if (KEY.indexOf("eyJ") === 0) headers.Authorization = "Bearer " + KEY;
+  if (prefer) headers.Prefer = prefer;
+  const r = await fetch(BASE + "/rest/v1/" + path, {
+    method: method,
+    headers: headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!r.ok) throw new Error("redis " + r.status);
-  const out = await r.json();
-  return out.map(function (o) {
-    if (o.error) throw new Error(o.error);
-    return o.result;
-  });
-}
-
-// HGETALL answers [field, value, field, value, ...]
-function toObj(flat) {
-  const o = {};
-  for (let i = 0; i < (flat || []).length; i += 2) o[flat[i]] = flat[i + 1];
-  return o;
+  const text = await r.text();
+  if (!r.ok) throw new Error("supabase " + r.status + (text ? ": " + text.slice(0, 240) : ""));
+  return text ? JSON.parse(text) : null;
 }
 
 function readBody(req) {
@@ -59,11 +50,11 @@ function readBody(req) {
 
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
-  if (!BASE || !TOKEN)
+  if (!BASE || !KEY)
     return res.status(503).json({
-      error: "Redis is not connected to this project (or the project was not redeployed after connecting it)",
+      error: "Supabase is not connected to this project (or the project was not redeployed after connecting it)",
       variables_found: Object.keys(process.env).filter(function (k) {
-        return /REST|KV_|UPSTASH|REDIS/.test(k); // names only, never the values
+        return /SUPABASE/.test(k); // names only, never the values
       }),
     });
 
@@ -77,59 +68,39 @@ module.exports = async function handler(req, res) {
     if (req.method === "GET") {
       // counters: visitors, online, my number
       if (q.stats) {
-        const [firstFlat, online] = await redis([
-          ["HGETALL", "wt:first"],
-          ["ZCOUNT", "wt:online", String(now - ONLINE_MS), "+inf"],
+        const results = await Promise.all([
+          db("GET", TABLE + "?select=id,first"),
+          db("GET", TABLE + "?select=id&seen=gt." + (now - ONLINE_MS)),
         ]);
-        const first = toObj(firstFlat);
-        const ids = Object.keys(first);
+        const all = results[0] || [];
         let rank = 0;
-        if (id && first[id] !== undefined) {
-          const mine = Number(first[id]);
+        const me = all.find(function (r) {
+          return r.id === id;
+        });
+        if (me) {
           rank =
             1 +
-            ids.filter(function (k) {
-              const f = Number(first[k]);
-              return k !== id && (f < mine || (f === mine && k < id));
+            all.filter(function (r) {
+              return r.id !== id && (r.first < me.first || (r.first === me.first && r.id < id));
             }).length;
         }
-        return res.status(200).json({ visitors: ids.length, online: Number(online) || 0, rank: rank, now: now });
+        return res.status(200).json({ visitors: all.length, online: (results[1] || []).length, rank: rank, now: now });
       }
 
       // graph pictures (rarely change, fetched separately)
       if (q.shots) {
-        const ssrv = toObj((await redis([["HGETALL", "wt:ssrv"]]))[0]);
-        const ids = Object.keys(ssrv).filter(function (k) {
-          return Number(ssrv[k]) > since;
-        });
-        if (!ids.length) return res.status(200).json({ now: now, shots: {} });
-        const vals = (await redis([["HMGET", "wt:shots"].concat(ids)]))[0] || [];
+        const rows = await db("GET", TABLE + "?select=id,ssrv,shot&shot=not.is.null&ssrv=gt." + since);
         const shots = {};
-        vals.forEach(function (v, i) {
-          if (!v) return;
-          try {
-            shots[ids[i]] = { srv: Number(ssrv[ids[i]]), shot: JSON.parse(v) };
-          } catch (e) {}
+        (rows || []).forEach(function (r) {
+          shots[r.id] = { srv: r.ssrv, shot: r.shot };
         });
         return res.status(200).json({ now: now, shots: shots });
       }
 
       // visitor docs that changed since <since>
-      const srv = toObj((await redis([["HGETALL", "wt:srv"]]))[0]);
-      const ids = Object.keys(srv).filter(function (k) {
-        return Number(srv[k]) > since;
-      });
-      if (!ids.length) return res.status(200).json({ now: now, docs: [] });
-      const vals = (await redis([["HMGET", "wt:visits"].concat(ids)]))[0] || [];
-      const docs = [];
-      vals.forEach(function (v, i) {
-        if (!v) return;
-        try {
-          const d = JSON.parse(v);
-          d.id = ids[i];
-          d.srv = Number(srv[ids[i]]);
-          docs.push(d);
-        } catch (e) {}
+      const rows = await db("GET", TABLE + "?select=id,srv,doc&order=srv.asc&srv=gt." + since);
+      const docs = (rows || []).map(function (r) {
+        return Object.assign({}, r.doc, { id: r.id, srv: r.srv });
       });
       return res.status(200).json({ now: now, docs: docs });
     }
@@ -149,30 +120,22 @@ module.exports = async function handler(req, res) {
         pos: body.pos,
         snap: body.snap && typeof body.snap === "object" ? body.snap : {},
       };
-      const json = JSON.stringify(doc);
-      if (json.length > 400000) return res.status(413).json({ error: "doc too large" });
+      if (JSON.stringify(doc).length > 400000) return res.status(413).json({ error: "doc too large" });
 
-      const cmds = [
-        ["HSET", "wt:visits", id, json],
-        ["HSET", "wt:srv", id, String(now)],
-        ["HSETNX", "wt:first", id, String(doc.first)],
-        ["ZADD", "wt:online", String(now), id],
-      ];
-      if (body.shot && typeof body.shot === "object") {
-        const sj = JSON.stringify(body.shot);
-        if (sj.length <= 600000) cmds.push(["HSET", "wt:shots", id, sj], ["HSET", "wt:ssrv", id, String(now)]);
+      // only the columns we send are changed (the graph pictures stay as they are if none are sent)
+      const row = { id: id, first: doc.first, srv: now, seen: now, doc: doc };
+      if (body.shot && typeof body.shot === "object" && JSON.stringify(body.shot).length <= 600000) {
+        row.shot = body.shot;
+        row.ssrv = now;
       }
-      await redis(cmds);
+      await db("POST", TABLE + "?on_conflict=id", row, "resolution=merge-duplicates,return=minimal");
       return res.status(200).json({ ok: true, now: now });
     }
 
     // ---------- heartbeat ----------
     if (req.method === "POST") {
       if (!id) return res.status(400).json({ error: "id missing" });
-      await redis([
-        ["ZADD", "wt:online", String(now), id],
-        ["ZREMRANGEBYSCORE", "wt:online", "-inf", String(now - 3600000)],
-      ]);
+      await db("PATCH", TABLE + "?id=eq." + id, { seen: now }, "return=minimal");
       return res.status(200).json({ ok: true });
     }
 
