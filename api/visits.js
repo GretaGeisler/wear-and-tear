@@ -10,8 +10,16 @@
 // Environment variables (set automatically when you connect Upstash Redis to the Vercel project):
 //   KV_REST_API_URL + KV_REST_API_TOKEN   (or UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN)
 
-const BASE = (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || "").replace(/\/$/, "");
-const TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || "";
+// find the Redis variables, also when the integration used another prefix (e.g. STORAGE_REST_API_URL)
+function findEnv(names, pattern, skip) {
+  for (const n of names) if (process.env[n]) return process.env[n];
+  const k = Object.keys(process.env).find(function (key) {
+    return pattern.test(key) && !(skip && skip.test(key));
+  });
+  return k ? process.env[k] : "";
+}
+const BASE = findEnv(["UPSTASH_REDIS_REST_URL", "KV_REST_API_URL"], /REST_(API_)?URL$/).replace(/\/$/, "");
+const TOKEN = findEnv(["UPSTASH_REDIS_REST_TOKEN", "KV_REST_API_TOKEN"], /REST_(API_)?TOKEN$/, /READ_ONLY/);
 
 const ONLINE_MS = 30000; // somebody counts as online for 30 s after the last sign of life
 
@@ -51,7 +59,13 @@ function readBody(req) {
 
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
-  if (!BASE || !TOKEN) return res.status(503).json({ error: "Redis is not connected to this project" });
+  if (!BASE || !TOKEN)
+    return res.status(503).json({
+      error: "Redis is not connected to this project (or the project was not redeployed after connecting it)",
+      variables_found: Object.keys(process.env).filter(function (k) {
+        return /REST|KV_|UPSTASH|REDIS/.test(k); // names only, never the values
+      }),
+    });
 
   const q = req.query || {};
   const id = String(q.id || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 48);
