@@ -14,7 +14,7 @@
   color-scheme: only light;
 
   /* ---- colours ---- */
-  --bg: #28edff; /* page background */
+  --bg: #25d5e5; /* page background */
   --fg: #a1f1ff; /* large text: title, headings, list */
   --fg-small: #c4f6ff; /* small text: corner info, tables, text blocks */
   --burn: #144a77; /* burn-in: cursor, glow, text ghosts (must be a hex colour) */
