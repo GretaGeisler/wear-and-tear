@@ -285,35 +285,60 @@
       ol.tiers li.reached {
         --o: 1;
       }
+      /* ================= MOBILE ================= */
+      @media (max-width: 700px) {
+        h2 {
+          font-size: clamp(20px, 6.2vw, 48px);
+          grid-template-columns: 0.6fr 3fr 0.6fr;
+          column-gap: 8px;
+          margin-bottom: 14px;
+          padding-bottom: 10px;
+        }
+        #tblsec,
+        .dsec {
+          font-size: 11px;
+        }
+        th,
+        td {
+          padding-right: 8px;
+        }
+        th.no,
+        td.no,
+        th.me,
+        td.me,
+        th.t0,
+        td.t0 {
+          padding-right: 12px;
+        }
+        #combo {
+          height: 300px;
+        }
+        .legend {
+          gap: 4px 12px;
+        }
+        .card {
+          grid-template-columns:
+            minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.6fr)
+            minmax(0, 0.8fr);
+          column-gap: 8px;
+        }
+        .card h3,
+        .card .val,
+        .card .pct {
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        ol.tiers li {
+          grid-template-columns: 0.6fr 3fr 0.6fr;
+          column-gap: 8px;
+        }
+      }
     </style>
   </head>
   <body>
-
-        <script src="/filters.js"></script>
-
-    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
-      <filter id="rough" x="0" y="0" width="100%" height="100%">
-        <feTurbulence
-          type="fractalNoise"
-          baseFrequency="0.09"
-          numOctaves="2"
-          seed="4"
-          result="n"
-        />
-        <feDisplacementMap
-          in="SourceGraphic"
-          in2="n"
-          scale="7"
-          xChannelSelector="R"
-          yChannelSelector="G"
-        />
-      </filter>
-    </svg>
-    <div id="bg"><img id="tex" src="/textur.jpg" alt="" /></div>
+<div id="bg"><img id="tex" src="./image2.png" alt="" /></div>
     <div id="crt"></div>
     <div id="grain"></div>
-
-
 
     <a class="back" href="/">ESC</a>
 
@@ -707,7 +732,7 @@
             ["Cursor speed (peak)", "0 px/s", num(s.maxSpeed, 0) + " px/s"],
             ["Scroll distance", "0 px", num(s.scroll, 0) + " px"],
             ["Key presses", "0", num(Math.max(s.keys || 0, window.WT_BURN ? WT_BURN.keys() : 0), 0)],
-            ["Wear", "0 %", num(m.wear, 2) + " %"],
+            ["Wear", "0 %", num(window.WT_BURN ? WT_BURN.wear() : m.wear, 2) + " %"],
             ["Data transferred", "0 KB", num(m.kb, 1) + " KB"],
             ["Est. energy", "0 Wh", num(m.wh, 3) + " Wh"],
             ["Est. CO₂", "0 g", num(m.co2, 3) + " g"],

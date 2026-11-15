@@ -12,16 +12,18 @@
   "use strict";
 
   var S = 6; // cell size in px
-  var HALO = 10; // soft glow around a cursor burn
+  var HALO = 14; // soft glow around a cursor burn
   var HALO_ALPHA = 0.3; // strongest the glow can get (lower = less "highlighted box" look)
   var PUSH_MS = 1500; // how often your traces are sent to the server
   var PULL_MS = 2500; // how often the traces of the others are fetched (= how "live" it is)
-  var STILL_MS = 200; // mouse must rest this long before it starts to burn in
+  var STILL_MS = 400; // mouse must rest this long before it starts to burn in
   var REST_PX = 8; // moving less than this many px still counts as "the same spot"
-  var STILL_BURN_MS = 8000; // resting this long on one spot burns it in at once ...
+  var STILL_BURN_MS = 10000; // resting this long on one spot burns it in at once ...
   var STILL_BURN = 6; // ... with the weight of this many clicks
-  var BURN_AT = 40; // how much "use" burns a cell to full strength (higher = slower)
-  var CLICK_W = 0.2,
+  var BURN_AT = 40; // speed of the burn-IN (ghosts, cursor trails): higher = slower
+  var WEAR_AT = 400; // speed of the WEAR % counter only: higher = slower
+  var DRAG_W = 0.08; // touch: weight of one drag sample (every 80 ms) in clicks
+  var CLICK_W = 1,
     HOVER_W = 0.15; // a click = 1 unit, 1 s of resting = 0.15 units
   var STATS = "/stats.html"; // click on the corner info goes here
   // elements that can burn in: headings, paragraphs, quotes, list links, .text, or anything with data-burn
@@ -367,6 +369,73 @@
     { passive: true, capture: true },
   );
 
+  // ---- touch: the finger is the cursor ----
+  // tap = click (pointerdown), holding still = like a resting mouse (10 s burst included),
+  // dragging = burns along the path of the finger. A ghost keeps the position where the
+  // finger FIRST met the element, so it does not slide around while the page scrolls.
+  var dragSeen = {},
+    lastDrag = 0;
+  function fingerOf(e) {
+    var t = e.touches && e.touches[0];
+    return t ? { clientX: t.clientX, clientY: t.clientY } : null;
+  }
+  function touchStart(e) {
+    var p = fingerOf(e);
+    if (!p) return;
+    dragSeen = {};
+    curCell = cellAt(p);
+    lx = p.clientX;
+    ly = p.clientY;
+    var t = Date.now();
+    lastMove = t;
+    restX = lx;
+    restY = ly;
+    restSince = t;
+    restDone = false;
+    xyDirty = true;
+  }
+  function touchMove(e) {
+    var p = fingerOf(e);
+    if (!p) return;
+    curCell = cellAt(p);
+    lx = p.clientX;
+    ly = p.clientY;
+    var t = Date.now();
+    lastMove = t;
+    xyDirty = true;
+    if (Math.abs(lx - restX) > REST_PX || Math.abs(ly - restY) > REST_PX) {
+      restX = lx;
+      restY = ly;
+      restSince = t;
+      restDone = false;
+    }
+    if (!curCell || t - lastDrag < 80) return;
+    lastDrag = t;
+    add(me.clicks, curCell, DRAG_W);
+    add(delta.clicks, curCell, DRAG_W);
+    add(me.clicks, PK, DRAG_W);
+    add(delta.clicks, PK, DRAG_W);
+    var h = hit(document.elementFromPoint(lx, ly));
+    if (h) {
+      add(me.clicks, h.key, DRAG_W);
+      add(delta.clicks, h.key, DRAG_W);
+      if (!dragSeen[h.key]) {
+        dragSeen[h.key] = 1;
+        mark(h);
+      }
+    }
+    dirty = true;
+    redraw = true;
+  }
+  function touchEnd() {
+    curCell = null;
+  }
+  var passiveCap = { passive: true, capture: true };
+  document.addEventListener("touchstart", touchStart, passiveCap);
+  document.addEventListener("touchmove", touchMove, passiveCap);
+  document.addEventListener("touchend", touchEnd, passiveCap);
+  document.addEventListener("touchcancel", touchEnd, passiveCap);
+
   // hover burn: only while the mouse is RESTING on a spot (not while it moves).
   // After STILL_BURN_MS on the same spot it burns in at once (like a few clicks).
   setInterval(function () {
@@ -404,11 +473,19 @@
     redraw = true;
   }, 100);
 
-  function wearAt(k) {
-    var v =
+  // "use" of a cell / element / the whole site: clicks + resting time, of me and all others
+  function useAt(k) {
+    return (
       ((me.clicks[k] || 0) + (others.clicks[k] || 0)) * CLICK_W +
-      ((me.hover[k] || 0) + (others.hover[k] || 0)) * HOVER_W;
-    return 1 - Math.exp((-v / BURN_AT) * 2.2); // 0 = pristine, -> 1 = fully burnt
+      ((me.hover[k] || 0) + (others.hover[k] || 0)) * HOVER_W
+    );
+  }
+  function wearAt(k) {
+    return 1 - Math.exp((-useAt(k) / BURN_AT) * 2.2); // 0 = pristine, -> 1 = fully burnt
+  }
+  // the wear counter in % (whole site), with its own, slower speed
+  function wearPct() {
+    return (1 - Math.exp((-useAt(PK) / WEAR_AT) * 2.2)) * 100;
   }
 
   var ghostSig = "";
@@ -506,7 +583,7 @@
       "px;height:" +
       pos[3] +
       "px;opacity:" +
-      Math.min(1, a * 1.6);
+      Math.min(1, a * (c.tagName === "IMG" ? 0.8 : 1.6));
 
     // sharper for small type: the blur grows with the font size, and only big type gets a glow
     // (a glow on small type fills the gaps between the letters and looks like a highlighted box)
@@ -637,6 +714,7 @@
   // used by the stats page
   window.WT_BURN = {
     ghosts: countGhosts,
+    wear: wearPct,
     keys: function () {
       return +lget("wt_keys") || 0;
     },
@@ -692,7 +770,7 @@
     var pg = window.WT && WT.page ? WT.page() : { kb: 0, wh: 0, co2: 0 };
     var rows = [
       [who, first],
-      ["WEAR", (wearAt(PK) * 100).toFixed(1) + " %"],
+      ["WEAR", wearPct().toFixed(1) + " %"],
       ["GHOSTS", String(countGhosts())],
       ["DATA", fmtData(pg.kb)],
       ["POWER", pg.wh.toFixed(2) + " WH"],
