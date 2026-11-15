@@ -40,6 +40,36 @@
   var stage = document.getElementById("stage");
   if (!stage) return;
 
+  // ---- start-page intro: the corner info stays hidden until the legend screen reveals it ----
+  // (the start page is recognised by the .hero-legend section). Once revealed it stays visible.
+  var INTRO = !!document.querySelector(".hero-legend");
+  // which HUD groups each legend entry reveals: 01 UN, 02 WP, 03 PU, 04 CO
+  // HUD group order: 0 USER, 1 CLICKS, 2 WEAR, 3 POWER, 4 CO2
+  // (legend entries: 01 UN, 02 CL, 03 WP, 04 PU, 05 CO)
+  var HUD_STEPS = [[0], [1], [2], [3], [4]];
+  var HUD_N = HUD_STEPS.length;
+  function ssget(k) {
+    try {
+      return sessionStorage.getItem(k);
+    } catch (e) {
+      return null;
+    }
+  }
+  function ssset(k, v) {
+    try {
+      sessionStorage.setItem(k, v);
+    } catch (e) {}
+  }
+  // a reload of the start page plays the intro again from the beginning
+  if (INTRO) {
+    try {
+      var nav = performance.getEntriesByType("navigation")[0];
+      if (nav && nav.type === "reload") ssset("wt_hud_step", "0");
+    } catch (e) {}
+  }
+  var hudStep = INTRO ? Math.min(HUD_N, +ssget("wt_hud_step") || 0) : HUD_N;
+  if (INTRO) document.body.classList.add("hud-intro");
+
   // burn colour = --burn in style.css (falls back to the text colour). Must be a hex colour.
   function hexToRgb(h) {
     h = (h || "").trim().replace("#", "");
@@ -77,15 +107,18 @@
       b.insertBefore(c, b.firstChild);
     }
     // corner info + "Show the Traces" button on every page (the start page has its own copy)
-    if (!document.getElementById("hud-l"))
+    if (!document.getElementById("hud-l")) {
       b.insertAdjacentHTML(
         "beforeend",
         '<div class="hud" id="hud-l">USER #\u2026\u2003\u20030 clicks</div>' +
           '<div class="hud" id="hud-r"><span id="hud-xy">X ---- Y ----</span>' +
-          '<span id="hud-clock">--:--:--</span></div>' +
-          '<button id="tog">SHOW TRACES</button>',
+          '<span id="hud-clock">--:--:--</span></div>',
       );
-  })();
+    }
+    if (!document.getElementById("tog")) {
+      b.insertAdjacentHTML("beforeend", '<button id="tog">SHOW TRACES</button>');
+    }
+  })(); // end ensure()
 
   var cv = document.getElementById("wear");
   var ctx = cv.getContext("2d");
@@ -197,7 +230,7 @@
     map[k] = Math.round(((map[k] || 0) + v) * 100) / 100;
   }
 
-  // element keys are per page: "e:<page>#<link address or index>"
+  // element keys are per page: "e:<page>@<link address or index>"
   // (links use their address, so adding a paragraph above never shifts the burn onto another link)
   function keyOf(el, i) {
     var id = el.tagName === "A" ? el.getAttribute("href") : null;
@@ -746,33 +779,59 @@
   var hudCells = null;
   function buildHud() {
     hudL.textContent = "";
+    // one .hud-group per category (name + number); the spacing comes from style.css
     hudCells = [];
-    for (var i = 0; i < 6; i++) {
-      var l = document.createElement("span"),
+    for (var i = 0; i < HUD_N; i++) {
+      var grp = document.createElement("div"),
+        l = document.createElement("span"),
         v = document.createElement("span");
-      hudL.appendChild(l);
-      hudL.appendChild(v);
+      grp.className = "hud-group";
+      grp.appendChild(l);
+      grp.appendChild(v);
+      hudL.appendChild(grp);
       hudCells.push([l, v]);
     }
+    hudApply();
   }
+  // show the groups revealed so far (all of them on every page except the start page intro)
+  function hudApply() {
+    if (!hudL) return;
+    var g = hudL.children,
+      on = {},
+      s,
+      i;
+    for (s = 0; s < hudStep && s < HUD_STEPS.length; s++)
+      HUD_STEPS[s].forEach(function (n) {
+        on[n] = 1;
+      });
+    for (i = 0; i < g.length; i++) g[i].classList.toggle("on", !!on[i]);
+    document.body.classList.toggle("hud-r-on", hudStep >= HUD_N);
+  }
+  // called by intro.js: reveal(1..5) = legend entry 01..05 has appeared
+  window.WT_HUD = {
+    reveal: function (n) {
+      if (n > hudStep) {
+        hudStep = Math.min(HUD_N, n);
+        ssset("wt_hud_step", String(hudStep));
+        hudApply();
+      }
+    },
+  };
   function showHud() {
     if (!hudL) return;
     if (!hudCells) buildHud();
     var clicks = Math.round(total(me.clicks) + total(others.clicks));
     var who =
       net === "on" && myRank
-        ? "USER #" + myRank
+        ? "#" + myRank
         : net === "off"
-          ? "USER #1"
-          : "USER #\u2026";
-    var first =
-      (net === "off" ? "offline\u2003\u2003" : "") + clicks + " clicks";
+          ? "#1 offline"
+          : "#\u2026";
     var pg = window.WT && WT.page ? WT.page() : { kb: 0, wh: 0, co2: 0 };
     var rows = [
-      [who, first],
+      ["USER", who],
+      ["CLICKS", String(clicks)],
       ["WEAR", wearPct().toFixed(1) + " %"],
-      ["GHOSTS", String(countGhosts())],
-      ["DATA", fmtData(pg.kb)],
       ["POWER", pg.wh.toFixed(2) + " WH"],
       ["CO2", pg.co2.toFixed(2) + " G"],
     ];
@@ -811,12 +870,14 @@
     tick();
   }
 
+  // "Show traces" button: hides the page content and leaves only the burn-in
   var tog = document.getElementById("tog");
-  if (tog)
+  if (tog) {
     tog.addEventListener("click", function () {
-      var b = document.body.classList.toggle("bare");
-      this.textContent = b ? "SHOW PAGE" : "SHOW TRACES";
+      var isBare = document.body.classList.toggle("bare");
+      tog.textContent = isBare ? "SHOW PAGE" : "SHOW TRACES";
     });
+  }
 
   // ---- shared storage: each visitor writes ONLY their own doc, everyone reads all docs ----
   var shotSigSent = "";

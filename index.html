@@ -1,235 +1,534 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Wear and Tear</title>
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
-    />
-    <meta name="color-scheme" content="only light" />
-    <link rel="stylesheet" href="/style.css" />
-    <style>
-      /* ---- intro text: second screen, between title and list ---- */
-      .textsec {
-        min-height: 100vh;
-        min-height: 100svh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 24px 0;
-        scroll-snap-align: start;
-      }
-      .textblock {
-        width: 100%;
-        max-width: 620px;
-        font-family: "Times New Roman", Times, serif;
-        font-size: 16px;
-        line-height: 1.25;
-        text-transform: uppercase;
-        text-align: center;
-        text-wrap: balance;
-        filter: url(#xerox-s); /* poster-style glow, filter lives in /filters.js */
-        opacity: var(--title-opacity);
-      }
-      /* hidden until the lines are split (no flash). Not "visible" afterwards:
-         that would override the hiding of #stage in "SHOW TRACES" mode. */
-      .textblock:not(.ready) {
-        visibility: hidden;
-      }
-      .textblock p {
-        margin: 0; /* keine Leerzeile zwischen den Absätzen */
-      }
+<head>
+  <meta charset="utf-8" />
+  <title>Wear and Tear</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
+  <meta name="color-scheme" content="only light" />
+  <link rel="stylesheet" href="/style.css" />
 
-      /* every line animates in on its own, one after another */
+  <style>
+    /* =========================================
+       INTRO TEXT: SECOND SCREEN
+       ========================================= */
+
+    .textsec {
+      min-height: 100vh;
+      min-height: 100svh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 0;
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+    }
+
+    .textblock {
+      width: 100%;
+      max-width: 620px;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 16px;
+      line-height: 1.25;
+      text-transform: uppercase;
+      text-align: center;
+      text-wrap: balance;
+      filter: url(#xerox-s);
+      opacity: var(--title-opacity);
+    }
+
+    .textblock:not(.ready) {
+      visibility: hidden;
+    }
+
+    .textblock p {
+      margin: 0;
+    }
+
+    .textblock .line {
+      display: block;
+      white-space: nowrap;
+      opacity: 0;
+      transform: translateY(10px);
+      transition:
+        opacity 2.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        transform 3s cubic-bezier(0.22, 1, 0.36, 1);
+      transition-delay: 0s;
+      will-change: opacity, transform;
+    }
+
+    .textsec.show .line {
+      opacity: 1;
+      transform: none;
+      transition-delay: calc(var(--i) * 260ms);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
       .textblock .line {
-        display: block;
-        white-space: nowrap;
-        opacity: 0;
-        transform: translateY(10px);
-        transition:
-          opacity 2.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-          transform 3s cubic-bezier(0.22, 1, 0.36, 1);
-        transition-delay: 0s; /* leaving: reset immediately */
-        will-change: opacity, transform;
-      }
-      .textsec.show .line {
-        opacity: 1;
+        transition: none;
         transform: none;
-        transition-delay: calc(var(--i) * 260ms); /* speed of the line build-up */
+      }
+    }
+
+
+    /* =========================================
+       HUD – TOP LEFT AND RIGHT
+       ========================================= */
+
+    #hud-l,
+    #hud-r {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 300;
+      line-height: 1;
+      letter-spacing: var(--mono-spacing);
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    /* LEFT: 20px between groups */
+
+    #hud-l {
+      position: fixed;
+      z-index: 20;
+      top: calc(env(safe-area-inset-top, 0px) + 10px);
+      left: 14px;
+      right: auto;
+
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 20px;
+    }
+
+    /* 5px between label and value */
+
+    .hud-group {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    /* RIGHT: coordinates and clock */
+
+    #hud-r {
+      position: fixed;
+      z-index: 20;
+      top: calc(env(safe-area-inset-top, 0px) + 10px);
+      right: 14px;
+      left: auto;
+
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 18px;
+    }
+
+    #hud-xy {
+      min-width: 14ch;
+      text-align: right;
+      font-size: 12px;
+    }
+
+
+    /* =========================================
+       FIRST SCREEN – VERTICAL TYPOGRAPHIC INDEX
+       ========================================= */
+
+    .hero-index {
+      min-height: 100vh;
+      min-height: 100svh;
+      width: 100%;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+
+      position: relative;
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+    }
+
+    /* Fixed vertical grid */
+
+    .hero-index .index-item {
+      display: block;
+      height: 50px;
+      line-height: 50px;
+      flex-shrink: 0;
+
+      font-size: 12px;
+      font-weight: normal;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    /* Large text inserted into the gaps */
+
+    .hero-index .index-insert {
+      height: 0;
+      position: relative;
+      z-index: 2;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      width: 100%;
+      font-size: 14px;
+      line-height: 0.9;
+      letter-spacing: 0.15em;
+      text-align: center;
+      text-transform: uppercase;
+      white-space: nowrap;
+
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+
+    /* =========================================
+       SCROLL SNAP
+       ========================================= */
+
+    html {
+      scroll-snap-type: y mandatory;
+      scroll-behavior: auto;
+    }
+
+    .hero-index,
+    .textsec,
+    #list {
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+    }
+
+
+    /* =========================================
+       MOBILE
+       ========================================= */
+
+    @media (max-width: 700px) {
+
+      #hud-l {
+        gap: 20px;
       }
 
-      @media (prefers-reduced-motion: reduce) {
-        .textblock .line {
-          transition: none;
-          transform: none;
-        }
+      .hud-group {
+        gap: 5px;
       }
-    </style>
-  </head>
-  <body>
-    <!-- SVG filters (metal background + poster text): must come first, before burn.js -->
 
-<div id="bg"><img id="tex" src="./image2.png" alt="" /></div>
-    <canvas id="wear"></canvas>
-    <div id="ghosts"></div>
-    <div id="crt"></div>
-    <div id="grain"></div>
+      #hud-r {
+        gap: 10px;
+      }
 
-    <!-- top left: which USER am I + total clicks -->
-    <div class="hud" id="hud-l">USER #…  0 clicks</div>
-    <!-- top right: mouse position (live) + clock -->
-    <div class="hud" id="hud-r">
-      <span id="hud-xy">X ---- Y ----</span>
-      <span id="hud-clock">--:--:--</span>
+      .hero-index .index-insert {
+        font-size: clamp(11px, 3.2vw, 14px);
+        letter-spacing: 0.08em;
+      }
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- BACKGROUND -->
+
+  <div id="bg">
+    <img id="tex" src="./image2.png" alt="" />
+  </div>
+
+  <canvas id="wear"></canvas>
+  <div id="ghosts"></div>
+  <div id="crt"></div>
+  <div id="grain"></div>
+
+
+
+
+ <!-- SHOW TRACES BUTTON -->
+
+<button id="tog">SHOW TRACES</button>
+
+<!-- MAIN CONTENT -->
+
+<div id="stage">
+    <!-- FIRST SCREEN -->
+
+    <div class="hero-index" data-stagger="0.32" data-pause="0.6" data-fade="2.2">
+
+      <span class="index-item">(01)</span>
+      <span class="index-item">P</span>
+
+      <div class="index-insert">
+        A DIGITAL DOCUMENTATION OF TRACES<br>
+        AND THEIR MEANING
+      </div>
+
+      <span class="index-item">(02)</span>
+      <span class="index-item">S</span>
+
+      <div class="index-insert">
+        WEAR AND TEAR
+      </div>
+
+      <span class="index-item">(03)</span>
+      <span class="index-item">P</span>
+
+      <span class="index-item">(04)</span>
+      <span class="index-item">W</span>
+
+      <div class="index-insert">
+        EVERY INTERACTION, EVERY MOVEMENT IS COUNTED<br>
+        AND ADDS UP TO THIS SITE’S DEGRADATION.
+      </div>
+
+      <span class="index-item">(05)</span>
+      <span class="index-item">W</span>
+
+      <div class="index-insert">
+        NOTHING IS RESET WHEN YOU LEAVE.<br>
+        YOUR TRACES STAY.
+      </div>
+
+      <span class="index-item">(06)</span>
+      <span class="index-item">N</span>
+
+      <span class="index-item">(07)</span>
+      <span class="index-item">D</span>
+
     </div>
-    <button id="tog">SHOW TRACES</button>
 
-    <div id="stage">
-      <section class="hero">
-        <h1>WEAR AND TEAR</h1>
-      </section>
 
-      <!-- Intro: kurzer Text, was die Website macht (Text hier ersetzen) -->
-      <section class="textsec" id="text">
-        <div class="textblock">
-      <p>
-            Wear and Tear is a website that ages while you use it. <br />Every click,
-            every movement of the cursor, every scroll and key press is counted
-            in your browser and adds up to wear.<br />
-            The more you interact, the more the interface shows it: burn-in,
-            grey ghosts, noise and distortion. <br />Seven stages, from pristine to
-            defective, show how far it has gone.<br />
-            Nothing is reset when you close the tab. The traces stay.
-          </p>
-        </div>
-      </section>
+    <!-- SECOND SCREEN: WHAT THE CORNER INFO MEANS -->
 
-      <!-- Liste: alle 7 Einträge stehen direkt untereinander auf einem Screen -->
-      <section id="list">
-        <ul>
-          <li><a href="/List/pristine.html">Pristine</a></li>
-          <li><a href="/List/settled.html">Settled</a></li>
-          <li><a href="/List/patina.html">Patina</a></li>
-          <li><a href="/List/worn.html">Worn</a></li>
-          <li><a href="/List/weathered.html">Weathered</a></li>
-          <li><a href="/List/neglected.html">Neglected</a></li>
-          <li><a href="/List/defective.html">Defective</a></li>
-        </ul>
-      </section>
+    <!-- the track is as tall as the entries need; intro.js adds one scroll stop per entry -->
+    <div class="legend-track">
+
+    <div class="hero-index hero-legend">
+
+      <span class="index-item">(01)</span>
+
+      <div class="index-insert">
+        YOUR USER NUMBER
+      </div>
+
+      <span class="index-item">UN</span>
+
+      <span class="index-item">(02)</span>
+
+      <div class="index-insert">
+        TRACING WHERE AND HOW OFTEN<br>
+        YOU’VE CLICKED ON THIS SITE
+      </div>
+
+      <span class="index-item">CL</span>
+
+      <span class="index-item">(03)</span>
+
+      <div class="index-insert">
+        THE PERCENTAGE OF DEGRADATION<br>
+        THAT’S ALREADY HAPPENED
+      </div>
+
+      <span class="index-item">WP</span>
+
+      <span class="index-item">(04)</span>
+
+      <div class="index-insert">
+        THE POWER USED TO OPERATE THIS WEBSITE<br>
+        AND ALL OF YOUR INTERACTIONS WITH IT
+      </div>
+
+      <span class="index-item">PU</span>
+
+      <span class="index-item">(05)</span>
+
+      <div class="index-insert">
+        THIS SITE’S GROWING CO2 EMISSION<br>
+        AS YOU GRADUALLY WEAR IT DOWN
+      </div>
+
+      <span class="index-item">CO</span>
+
     </div>
 
-    <script src="/grain.js"></script>
-    <script src="/tracker.js"></script>
-    <script src="/burn.js"></script>
+    </div>
 
-    <!-- Intro text: split into lines, fade in line by line -->
-    <script>
-      (function () {
-        var sec = document.getElementById("text");
-        var block = sec.querySelector(".textblock");
-        var ps = Array.prototype.slice.call(block.querySelectorAll("p"));
-        var orig = ps.map(function (p) {
-          return p.innerHTML;
-        });
 
-        // Split every paragraph into the lines the browser actually shows
-        // (also lines created by <br>), wrap each line in its own span.
-        function split() {
-          var idx = 0;
-          var tmp = document.createElement("div");
-          ps.forEach(function (p, n) {
-            var segs = orig[n].split(/<br\s*\/?>/i).map(function (h) {
+    <!-- LIST SCREEN -->
+
+    <section id="list">
+      <ul>
+        <li><a href="/List/pristine.html">Pristine</a></li>
+        <li><a href="/List/settled.html">Settled</a></li>
+        <li><a href="/List/patina.html">Patina</a></li>
+        <li><a href="/List/worn.html">Worn</a></li>
+        <li><a href="/List/weathered.html">Weathered</a></li>
+        <li><a href="/List/neglected.html">Neglected</a></li>
+        <li><a href="/List/defective.html">Defective</a></li>
+      </ul>
+    </section>
+
+  </div>
+
+
+  <!-- EXISTING SCRIPTS -->
+
+  <script src="/grain.js"></script>
+  <script src="/tracker.js"></script>
+  <script src="/burn.js"></script>
+  <script src="/intro.js"></script>
+
+
+  <!-- INTRO TEXT ANIMATION -->
+
+  <script>
+    (function () {
+      var sec = document.getElementById("text");
+
+      if (!sec) return;
+
+      var block = sec.querySelector(".textblock");
+      if (!block) return;
+
+      var ps = Array.prototype.slice.call(
+        block.querySelectorAll("p")
+      );
+
+      var orig = ps.map(function (p) {
+        return p.innerHTML;
+      });
+
+      function split() {
+        var idx = 0;
+        var tmp = document.createElement("div");
+
+        ps.forEach(function (p, n) {
+          var segs = orig[n]
+            .split(/<br\s*\/?>/i)
+            .map(function (h) {
               tmp.innerHTML = h;
               return tmp.textContent.trim().split(/\s+/).filter(Boolean);
             });
-            p.textContent = "";
-            var words = [];
-            segs.forEach(function (sg, si) {
-              if (si) p.appendChild(document.createElement("br"));
-              sg.forEach(function (w, wi) {
-                if (wi) p.appendChild(document.createTextNode(" "));
-                var s = document.createElement("span");
-                s.textContent = w;
-                p.appendChild(s);
-                words.push(s);
-              });
-            });
-            var lines = [],
-              top = null;
-            words.forEach(function (s) {
-              var t = s.offsetTop;
-              if (top === null || Math.abs(t - top) > 2) {
-                lines.push([]);
-                top = t;
-              }
-              lines[lines.length - 1].push(s.textContent);
-            });
-            p.textContent = "";
-            lines.forEach(function (ws) {
-              var l = document.createElement("span");
-              l.className = "line";
-              l.style.setProperty("--i", idx++);
-              l.textContent = ws.join(" ");
-              p.appendChild(l);
+
+          p.textContent = "";
+
+          var words = [];
+
+          segs.forEach(function (sg, si) {
+            if (si) p.appendChild(document.createElement("br"));
+
+            sg.forEach(function (w, wi) {
+              if (wi) p.appendChild(document.createTextNode(" "));
+
+              var s = document.createElement("span");
+              s.textContent = w;
+              p.appendChild(s);
+              words.push(s);
             });
           });
-          block.classList.add("ready");
-        }
 
-        function start() {
-          split();
-          var t;
-          addEventListener("resize", function () {
-            clearTimeout(t);
-            t = setTimeout(split, 150);
+          var lines = [];
+          var top = null;
+
+          words.forEach(function (s) {
+            var t = s.offsetTop;
+
+            if (top === null || Math.abs(t - top) > 2) {
+              lines.push([]);
+              top = t;
+            }
+
+            lines[lines.length - 1].push(s.textContent);
           });
-        }
-        if (document.fonts && document.fonts.ready)
-          document.fonts.ready.then(start);
-        else start();
 
-        if (!("IntersectionObserver" in window)) {
-          sec.classList.add("show");
-          return;
-        }
-        new IntersectionObserver(
-          function (entries) {
-            entries.forEach(function (e) {
-              e.target.classList.toggle("show", e.isIntersecting);
-            });
-          },
-          { threshold: 0.35 }
-        ).observe(sec);
-      })();
-    </script>
+          p.textContent = "";
 
-    <!-- List: items fade in when visible -->
-    <script>
-      (function () {
-        var items = document.querySelectorAll("#list li");
-
-        if (!("IntersectionObserver" in window)) {
-          items.forEach(function (item) {
-            item.classList.add("show");
+          lines.forEach(function (ws) {
+            var l = document.createElement("span");
+            l.className = "line";
+            l.style.setProperty("--i", idx++);
+            l.textContent = ws.join(" ");
+            p.appendChild(l);
           });
-          return;
-        }
-
-        var observer = new IntersectionObserver(
-          function (entries) {
-            entries.forEach(function (entry) {
-              entry.target.classList.toggle("show", entry.isIntersecting);
-            });
-          },
-          { threshold: 0.35 }
-        );
-
-        items.forEach(function (item) {
-          observer.observe(item);
         });
-      })();
-    </script>
-    <div id="texture-overlay"></div>
-  </body>
+
+        block.classList.add("ready");
+      }
+
+      function start() {
+        split();
+
+        var t;
+
+        addEventListener("resize", function () {
+          clearTimeout(t);
+          t = setTimeout(split, 150);
+        });
+      }
+
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(start);
+      } else {
+        start();
+      }
+
+      if (!("IntersectionObserver" in window)) {
+        sec.classList.add("show");
+        return;
+      }
+
+      new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (e) {
+            e.target.classList.toggle("show", e.isIntersecting);
+          });
+        },
+        { threshold: 0.35 }
+      ).observe(sec);
+
+    })();
+  </script>
+
+
+  <!-- LIST FADE-IN ANIMATION -->
+
+  <script>
+    (function () {
+      var items = document.querySelectorAll("#list li");
+
+      if (!("IntersectionObserver" in window)) {
+        items.forEach(function (item) {
+          item.classList.add("show");
+        });
+        return;
+      }
+
+      var observer = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            entry.target.classList.toggle("show", entry.isIntersecting);
+          });
+        },
+        { threshold: 0.35 }
+      );
+
+      items.forEach(function (item) {
+        observer.observe(item);
+      });
+
+    })();
+  </script>
+
+
+  <div id="texture-overlay"></div>
+
+</body>
 </html>

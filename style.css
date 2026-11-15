@@ -1,41 +1,41 @@
 /* Wear and Tear – shared stylesheet */
 
-/* IBM Plex Mono Light (small type). Loaded from Google Fonts.
-   To host it yourself instead (no request to Google): download IBMPlexMono-Light.woff2,
-   put it in /fonts/, delete the @import line and use this instead:
-   @font-face { font-family: "IBM Plex Mono"; font-weight: 300; font-display: swap;
-                src: url("/fonts/IBMPlexMono-Light.woff2") format("woff2"); }           */
+/* IBM Plex Mono Light */
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300&display=swap");
 
+
 /* =========================================
-   VARIABLES: change colours and type here
+   VARIABLES
    ========================================= */
+
 :root {
   color-scheme: only light;
 
-  /* ---- colours ---- */
-  --bg: #d7d4d0; /* page background */
-  --fg: #1c1919; /* large text: title, headings, list */
-  --fg-small: #1c1919; /* small text: corner info, tables, text blocks */
-  --burn: #5e5d5b; /* burn-in: cursor, glow, text ghosts (must be a hex colour) */
-  --title-opacity: 0.92; /* big title + list: 1 = full colour */
+  /* colours */
+  --bg: #eeeae6;
+  --fg: #161211;
+  --fg-small: #161211;
+  --burn: #55524d;
+  --title-opacity: 0.92;
 
-  /* ---- texture over the background (blend mode, strength, filter) ---- */
-  --tex-opacity: 1;
+  /* texture */
+  --tex-opacity: 0.5;
   --tex-filter: none;
 
-  /* ---- small type ---- */
+  /* small type */
   --mono: "Times New Roman";
-  --mono-spacing: 0.06em; /* letter spacing of all small type */
+  --mono-spacing: 0.06em;
 
   box-sizing: border-box;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+
 /* =========================================
    BASE
    ========================================= */
+
 * {
   box-sizing: border-box;
 }
@@ -43,9 +43,8 @@
 html {
   background: var(--bg);
   scroll-padding-top: env(safe-area-inset-top, 0px);
-  /* real snapping between the screens; no scroll-behavior: smooth,
-     it fights the snapping (especially when scrolling back up) */
   scroll-snap-type: y mandatory;
+  scroll-behavior: auto;
   overscroll-behavior-y: none;
 }
 
@@ -59,8 +58,11 @@ body {
     serif;
 }
 
-/* All page text lives in #stage: z-index 6 keeps it ABOVE the burn layers
-   (#ghosts = 4, #wear = 5) on every page. Scanlines (9) and grain (30) stay above. */
+
+/* =========================================
+   MAIN CONTENT
+   ========================================= */
+
 #stage {
   z-index: 6;
   position: relative;
@@ -68,10 +70,13 @@ body {
   padding: 0 15px;
 }
 
+
 /* =========================================
    TEXT COLOURS
    ========================================= */
+
 /* small text */
+
 .hud,
 #tog,
 .back,
@@ -87,26 +92,28 @@ ol.tiers,
 }
 
 /* large text */
+
 h1,
 h2,
 #list a {
   color: var(--fg);
 }
 
-/* very slight blur on all text */
+/* slight blur */
+
 h1,
 #list,
 .hud,
 #tog,
 .back {
-  filter: blur(0.4px);
+  filter: blur(0.2px);
 }
+
 
 /* =========================================
    BACKGROUND AND EFFECT LAYERS
    ========================================= */
-/* flat colour + full-screen texture, blended (see --tex-blend).
-   Isolated group, so the blend only affects the colour behind it, never the text. */
+
 #bg {
   position: fixed;
   inset: 0;
@@ -116,6 +123,7 @@ h1,
   isolation: isolate;
   overflow: hidden;
 }
+
 #tex {
   position: absolute;
   inset: 0;
@@ -128,7 +136,8 @@ h1,
   filter: var(--tex-filter);
 }
 
-/* The burn lives on the SCREEN (fixed), not on the page: it stays put while you scroll. */
+/* burn layer */
+
 #wear {
   position: fixed;
   inset: 0;
@@ -138,18 +147,20 @@ h1,
   z-index: 5;
   filter: blur(1px) url(#rough);
 }
+
+/* ghosts */
+
 #ghosts {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 4;
   overflow: hidden;
-  /* blur and glow are set per ghost in burn.js (sharper for small type) */
 }
+
 #ghosts,
 #ghosts * {
-  color: var(--burn) !important; /* burned-in text ghosts */
-  /* copies must never bring their own box (button chrome, backgrounds, borders) */
+  color: var(--burn) !important;
   background: none !important;
   border: 0 !important;
   box-shadow: none !important;
@@ -157,9 +168,9 @@ h1,
   -webkit-appearance: none;
   appearance: none;
 }
-/* blur and glow are set per ghost in burn.js */
 
 /* scanlines */
+
 #crt {
   position: fixed;
   inset: 0;
@@ -172,63 +183,173 @@ h1,
   );
 }
 
-/* multicolour grain over everything */
+/* grain */
+
 #grain {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 30;
-  opacity: 0.04; /* was 0.26: strong grain makes the paper look rough */
-  background-size: 256px 256px; /* 512px texture shown at 256px = finer grain */
+  opacity: 0.04;
+  background-size: 256px 256px;
   mix-blend-mode: normal;
 }
 
+
 /* =========================================
-   1st SCREEN: TITLE
+   FIRST SCREEN – VERTICAL INDEX
    ========================================= */
-.hero {
+
+.hero-index {
   min-height: 100vh;
   min-height: 100svh;
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  position: relative;
+  text-align: center;
+
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+
+  font-family: "Times New Roman", Times, serif;
+  font-weight: normal;
+}
+
+/* fixed vertical grid */
+
+.hero-index .index-item {
+  display: block;
+
+  height: 50px;
+  line-height: 50px;
+  flex-shrink: 0;
+
+  font-size: 12px;
+  font-weight: normal;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* large text inserted into the gaps */
+
+.hero-index .index-insert {
+  height: 0;
+  position: relative;
+  z-index: 2;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  width: 100%;
+
+  font-family: "Times New Roman", Times, serif;
+  font-size: 14px;
+  line-height: 0.9;
+  letter-spacing: 0.15em;
+  font-weight: normal;
+
   text-align: center;
-  scroll-snap-align: start;
-  scroll-snap-stop: always; /* one screen after the other, never skip one */
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
-h1 {
-  margin: 0;
-  font-weight: 400;
-  font-size: 48px;
-  line-height: 1;
-  white-space: nowrap;
-  opacity: var(--title-opacity);
-}
 
 /* =========================================
-   TEXT SCREENS (index intro and sub-pages)
+   TEXT SCREENS
    ========================================= */
+
 .textsec {
+  min-height: 100vh;
+  min-height: 100svh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px 0;
+
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
 
+.textblock {
+  width: 100%;
+  max-width: 620px;
+
+  font-family: "Times New Roman", Times, serif;
+  font-size: 16px;
+  line-height: 1.25;
+
+  text-transform: uppercase;
+  text-align: center;
+  text-wrap: balance;
+
+  filter: url(#xerox-s);
+  opacity: var(--title-opacity);
+}
+
+.textblock:not(.ready) {
+  visibility: hidden;
+}
+
+.textblock p {
+  margin: 0;
+}
+
+/* line animation */
+
+.textblock .line {
+  display: block;
+  white-space: nowrap;
+
+  opacity: 0;
+  transform: translateY(10px);
+
+  transition:
+    opacity 2.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    transform 3s cubic-bezier(0.22, 1, 0.36, 1);
+
+  transition-delay: 0s;
+  will-change: opacity, transform;
+}
+
+.textsec.show .line {
+  opacity: 1;
+  transform: none;
+  transition-delay: calc(var(--i) * 260ms);
+}
+
+
 /* =========================================
-   INDEX: LIST (all 7 entries on one screen)
+   INDEX LIST
    ========================================= */
+
 #list {
   min-height: 100vh;
   min-height: 100svh;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   text-align: center;
+
   font-family: "Times New Roman", Times, serif;
   font-size: 16px;
   line-height: 1.25;
   text-transform: uppercase;
+
   opacity: var(--title-opacity);
+
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
@@ -237,25 +358,31 @@ h1 {
   list-style: none;
   margin: 0 auto;
   padding: 0;
+
   width: 100%;
   max-width: 1000px;
+
   counter-reset: index-item;
 }
 
-/* every entry is only as tall as its content */
+/* list entries */
+
 #list li {
   counter-increment: index-item;
+
   display: block;
   position: relative;
+
   margin: 0;
   padding: 0;
 
-  /* build-up when scrolled into view: slow, soft ease-out */
   opacity: 0;
   transform: translateY(14px);
+
   transition:
     opacity 1.6s cubic-bezier(0.16, 1, 0.3, 1),
     transform 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+
   will-change: opacity, transform;
 }
 
@@ -264,49 +391,84 @@ h1 {
   transform: none;
 }
 
-/* staggered build-up (delay only when appearing, leaving is immediate) */
-#list li.show:nth-child(1) { transition-delay: 0s; }
-#list li.show:nth-child(2) { transition-delay: 0.18s; }
-#list li.show:nth-child(3) { transition-delay: 0.36s; }
-#list li.show:nth-child(4) { transition-delay: 0.54s; }
-#list li.show:nth-child(5) { transition-delay: 0.72s; }
-#list li.show:nth-child(6) { transition-delay: 0.9s; }
-#list li.show:nth-child(7) { transition-delay: 1.08s; }
+/* staggered animation */
+
+#list li.show:nth-child(1) {
+  transition-delay: 0s;
+}
+
+#list li.show:nth-child(2) {
+  transition-delay: 0.18s;
+}
+
+#list li.show:nth-child(3) {
+  transition-delay: 0.36s;
+}
+
+#list li.show:nth-child(4) {
+  transition-delay: 0.54s;
+}
+
+#list li.show:nth-child(5) {
+  transition-delay: 0.72s;
+}
+
+#list li.show:nth-child(6) {
+  transition-delay: 0.9s;
+}
+
+#list li.show:nth-child(7) {
+  transition-delay: 1.08s;
+}
+
+/* list links */
 
 #list li a {
   display: grid;
   grid-template-columns: 1fr minmax(0, 3fr) 1fr;
+
   column-gap: 12px;
   align-items: start;
+
   width: 100%;
   padding: 14px 0;
+
   text-decoration: none;
+
   font-size: 48px;
   line-height: 1;
   text-align: center;
+
   transition: opacity 0.2s;
 }
+
 #list li a:hover {
   opacity: 0.5;
 }
 
 /* roman numerals left */
+
 #list li a::before {
   content: counter(index-item, upper-roman);
   text-align: left;
 }
 
 /* decimal numbers right */
+
 #list li a::after {
   content: counter(index-item, decimal-leading-zero);
   text-align: right;
 }
 
+
 /* =========================================
-   SMALL UI: corner info, buttons, back link
+   HUD – TOP LEFT AND RIGHT
    ========================================= */
-/* small type: font, spacing from --mono-spacing */
+
+/* all HUD text */
+
 .hud,
+#hud-l,
 #tog,
 .back,
 .mono {
@@ -315,75 +477,122 @@ h1 {
   letter-spacing: var(--mono-spacing);
 }
 
-/* corner info (all caps), click leads to the stats page */
-.hud {
+/* LEFT: category groups */
+
+#hud-l {
   position: fixed;
   z-index: 20;
+
   top: calc(env(safe-area-inset-top, 0px) + 10px);
-  font-size: 11px;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  text-transform: uppercase;
-  pointer-events: auto;
-  cursor: pointer;
-}
-#hud-l {
   left: 14px;
-  display: grid;
-  grid-template-columns: max-content max-content; /* label | value */
-  column-gap: calc(2em + 2 * var(--mono-spacing)); /* gap label -> value */
-  row-gap: 0.6em; /* space between the rows */
+  right: auto;
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  gap: 20px;
+
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+/* 10px between category name and unit */
+
+.hud-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  gap: 5px;
+
+  font-size: 12px;
+  line-height: 1;
   white-space: nowrap;
 }
+
+/* RIGHT: coordinates and clock */
+
 #hud-r {
+  position: fixed;
+  z-index: 20;
+
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
   right: 14px;
+  left: auto;
+
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+
   gap: 18px;
+
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  text-transform: uppercase;
 }
+
 #hud-xy {
   min-width: 14ch;
   text-align: right;
+  font-size: 12px;
 }
 
-/* SHOW TRACES button, bottom right */
+/* SHOW TRACES button */
+
 #tog {
   position: fixed;
+
   right: 14px;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
-  z-index: 20;
+
+  z-index: 2000;
+
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
+
   cursor: pointer;
+
   background: transparent;
   border: 0;
 }
+
+/* hide content in bare mode */
+
 body.bare #stage,
 body.bare .back {
   visibility: hidden;
 }
 
-/* "back" link, bottom left, same place on every page */
+/* back link */
+
 .back {
   position: fixed;
+
   left: 14px;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+
   z-index: 20;
-  font-size: 11px;
+
+  font-size: 12px;
   text-transform: uppercase;
   text-decoration: none;
 }
 
+
 /* =========================================
-   TRANSLUCENT PAPER (vellum sleeve)
-   One fixed layer ABOVE the burn layers (#wear = 5, #ghosts = 4) and BELOW the text (#stage = 6):
-   background, burn-in and ghosts look blurred and washed out behind the paper,
-   all text stays sharp. body::after is the last element of the page, so it needs no HTML.
+   TRANSLUCENT PAPER
    ========================================= */
 
 body::after {
   content: "";
   position: fixed;
   inset: 0;
+
   z-index: 10;
   pointer-events: none;
 
@@ -392,59 +601,149 @@ body::after {
   background-position: center;
   background-repeat: no-repeat;
 
-  opacity: 0.28;
+  opacity: 0.1;
 }
 
 
-/* a faint, blurred copy behind the big text, like print on the inner sheet seen through the paper */
+/* =========================================
+   TEXT SHADOW
+   ========================================= */
+
 h1,
 h2,
 #list a {
   text-shadow: 3px 4px 7px rgba(55, 50, 50, 0.16);
 }
 
+
 /* =========================================
-   MOBILE: same look as on desktop, scaled to the screen
+   START PAGE INTRO – BUILD-UP + HUD REVEAL
    ========================================= */
-@media (max-width: 700px) {
-  h1 {
-    font-size: clamp(26px, 9.5vw, 48px);
-  }
-  #list li a {
-    font-size: clamp(26px, 9vw, 36px);
-    grid-template-columns: 0.7fr 2.6fr 0.7fr;
-    column-gap: 8px;
-    padding: 10px 0;
-  }
-  /* corner info: the mouse position makes no sense on a phone and would collide with the left side */
-  #hud-xy {
-    display: none;
+
+/* rows and inserted texts fade in one after the other, top to bottom (intro.js sets --i / --gap) */
+
+.hero-index .index-item,
+.hero-index .index-insert {
+  opacity: 0;
+  transition: opacity var(--fade, 1.4s) cubic-bezier(0.33, 0, 0.2, 1);
+  transition-delay: var(--d, 0s); /* set per part by intro.js */
+}
+
+.hero-index.show .index-item,
+.hero-index.show .index-insert {
+  opacity: 1;
+}
+
+/* corner info hidden until the legend reveals it (class set by burn.js on the start page) */
+
+body.hud-intro #hud-l .hud-group,
+body.hud-intro #hud-r {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.6s ease;
+}
+
+body.hud-intro #hud-l .hud-group.on,
+body.hud-intro.hud-r-on #hud-r {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .hero-index .index-item,
+  .hero-index .index-insert,
+  body.hud-intro #hud-l .hud-group,
+  body.hud-intro #hud-r {
+    transition: none;
   }
 }
 
-/* touch screens: no text selection, no tap highlight, lighter effect filter */
+
+/* =========================================
+   MOBILE
+   ========================================= */
+
+@media (max-width: 700px) {
+
+  h1 {
+    font-size: clamp(26px, 9.5vw, 48px);
+  }
+
+  #list li a {
+    font-size: clamp(26px, 9vw, 36px);
+
+    grid-template-columns: 0.7fr 2.6fr 0.7fr;
+
+    column-gap: 8px;
+    padding: 10px 0;
+  }
+
+  /* HUD groups on mobile */
+
+  #hud-l {
+    gap: 20px;
+  }
+
+  .hud-group {
+    gap: 5px;
+  }
+
+  #hud-r {
+    gap: 10px;
+  }
+
+  #hud-xy {
+    display: none;
+  }
+
+  /* large inserted text */
+
+  .hero-index .index-insert {
+    font-size: clamp(11px, 3.2vw, 14px);
+    letter-spacing: 0.08em;
+  }
+}
+
+
+/* =========================================
+   TOUCH SCREENS
+   ========================================= */
+
 @media (pointer: coarse) {
+
   html {
     -webkit-tap-highlight-color: transparent;
   }
+
   body {
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
   }
+
   #wear {
-    filter: blur(1px); /* the distortion filter is too heavy for most phones */
+    filter: blur(1px);
   }
+
   body::after {
-    --paper-blur: 1.5px; /* blurring the whole screen every frame is heavy */
+    --paper-blur: 1.5px;
   }
 }
+
 
 /* =========================================
    ACCESSIBILITY
    ========================================= */
+
 @media (prefers-reduced-motion: reduce) {
+
   #list li {
+    transition: none;
+    transform: none;
+  }
+
+  .textblock .line {
     transition: none;
     transform: none;
   }
