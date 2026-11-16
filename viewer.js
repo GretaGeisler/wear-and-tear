@@ -2,7 +2,12 @@
    Einbinden: <script src="/viewer.js"></script> vor </body>, NACH burn.js, tracker.js und dem Inline-Skript.
    Jeder Screenshot = der echte Zustand von #wear (Cursor-Burns) und #ghosts (Text-Burns). */
 (function () {
-  var C = { SNAP_MS: 30000, W: 480, MAX: 24, KEY: "wt_arc" };
+  var C = {
+    SNAP_MS: 30000,
+    W: 1280,      /* Auflösung der Screenshots (Breite in px). 480 = alt, 960 = scharf, 1280+ = sehr scharf */
+    MAX: 24,      /* max. Anzahl gespeicherter Frames */
+    KEY: "wt_arc"
+  };
 
   /* ---------- LOOK DER FRAMES: hier anpassen ---------- */
   var FRAME = {
@@ -12,14 +17,14 @@
 
     /* Rahmen */
     borderColor: "47,39,35",       /* r,g,b */
-    borderOpacity: 0.15,
+    borderOpacity: 0.05,
     borderWidth: 0.25,                /* px */
     borderRadius: 0,               /* px, 0 = eckig */
     shadow: "none",                /* z.B. "3px 4px 7px rgba(55,50,50,.16)" */
 
     /* aktiver (vorderster) Frame */
     activeBorderColor: "97,89,85",
-    activeBorderOpacity: 0.25,
+    activeBorderOpacity: 0.1,
 
     /* Dicke / Tiefe (echte 3D-Seitenflächen) */
     depth: 0,               /* Dicke des Frames in px, 0 = flach */
@@ -36,7 +41,11 @@
     opacity: 0.95,     /* max. Deckkraft */
     fade: 0.09,        /* Deckkraftverlust pro Frame nach hinten */
     minOpacity: 0.1,   /* untere Grenze der Deckkraft */
-    maxVisible: 14     /* wie viele Frames nach hinten sichtbar sind */
+    maxVisible: 14,    /* wie viele Frames nach hinten sichtbar sind */
+
+    /* Klick: Frame fährt nach rechts heraus */
+    slide: 0.6,        /* Weg nach rechts, relativ zur Frame-Breite (0 = aus) */
+    slideSpeed: 0.1    /* Geschwindigkeit der Bewegung (0.05 = träge, 0.2 = schnell) */
   };
 
   /* ---------- FARBEN DER STATS-SEITE: hier anpassen ---------- */
@@ -53,7 +62,8 @@
     scanlines: false,              /* CRT-Scanlines #crt */
     showWear: false,               /* Cursor-Burns (#wear) auf der Seite zeigen; Screenshots enthalten sie trotzdem */
     showGhosts: false,             /* Text-Ghosts (#ghosts) auf der Seite zeigen */
-    textSize: 12                   /* px: Text + Überschriften unter dem Viewer (wie die Zeile oben) */
+    textSize: 12,                  /* px: Text + Überschriften unter dem Viewer (wie die Zeile oben) */
+    headGap: 2                     /* Leerzeilen über jeder Überschrift (z. B. "All live measurements"), 0 = keine */
   };
 
   var stage = document.getElementById("stage"),
@@ -79,11 +89,18 @@
     "#tblsec:not(.dsec),.dsec,#list{filter:url(#xerox-s);opacity:var(--title-opacity)}" +
     "#tblsec .dsec,#tblsec #list{filter:none;opacity:1}" +
     "#stage table{margin:0!important;border-collapse:collapse!important}" +
+    "#stage>:not(#viewer) h1,#stage>:not(#viewer) h2,#stage>:not(#viewer) h3,#tblsec h2,.dsec h2{margin-top:" + (THEME.headGap * THEME.textSize * 1.25).toFixed(1) + "px!important;margin-bottom:0!important}" +
     "#tblsec,.dsec,#list{justify-content:flex-start!important;align-items:flex-start!important}" +
     "#list ul{margin:0!important;max-width:none!important}" +
     "#stage th,#stage td{padding:4px 24px 4px 0!important}" +
     "#list li a{display:block!important;padding:6px 0!important}" +
     "#list li a::before,#list li a::after{content:none!important;display:none!important}" +
+    /* alle Ziffern/Marker im Index-Bereich weg (römisch I-IV, 01-04, Listenpunkte) */
+    "#stage>:not(#viewer)::before,#stage>:not(#viewer)::after,#stage>:not(#viewer) *::before,#stage>:not(#viewer) *::after,#stage li::before,#stage li::after,#stage li a::before,#stage li a::after{content:none!important;display:none!important}" +
+    "#stage ol,#stage ul,#stage li{list-style:none!important;counter-reset:none!important;counter-increment:none!important}" +
+    /* alles inkl. Header linksbündig */
+    "#stage>:not(#viewer),#stage>:not(#viewer) *,#stage h1,#stage h2,#stage h3{text-align:left!important}" +
+    "#stage>:not(#viewer) h1,#stage>:not(#viewer) h2,#stage>:not(#viewer) h3,#tblsec h1,#tblsec h2,.dsec h2{margin-left:0!important;margin-right:auto!important;padding-left:0!important}" +
     "body{overflow-x:clip}" +
     "#viewer{position:relative;width:100vw;height:100vh;height:100svh;margin:0 0 0 calc(50% - 50vw);overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always;touch-action:none;font-family:'Times New Roman',Times,serif}" +
     "#vw{position:absolute;inset:0;perspective:2200px;perspective-origin:50% 40%}" +
@@ -111,6 +128,11 @@
     ".vp b{font-weight:300}.vb{cursor:pointer;opacity:.55}.vb.on{opacity:1}" +
     "#vinfo{left:14px;top:30px;flex-direction:column;align-items:flex-start;gap:6px}" +
     "#vpan{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:12px}" +
+    "#stage .legend{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:6px!important;width:100%;text-align:left!important}" +
+    "#stage .legend button{display:block!important;margin:0!important;padding:0!important;background:none!important;border:0!important;text-align:left!important;white-space:nowrap;" +
+      "font:400 " + THEME.textSize + "px/1.25 'Times New Roman',Times,serif!important;text-transform:uppercase!important;color:var(--fg-small)!important}" +
+    "#stage .vgr :not(svg):not(svg *){font:400 " + THEME.textSize + "px/1.25 'Times New Roman',Times,serif!important;text-transform:uppercase!important;text-align:left!important;color:var(--fg-small)!important}" +
+    ".vcb{display:inline-block;min-width:2.4em;margin-right:.5em;white-space:pre;text-align:left}" +
     "#vmodes{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 10px);z-index:20}" +
     "@media(max-width:700px){#vinfo{gap:4px}#vpan{gap:4px}}";
   var el = document.createElement("style");
@@ -194,7 +216,7 @@
   }
 
   function snap() {
-    var sx = C.W / innerWidth, H = Math.min(960, Math.max(240, Math.round(innerHeight * sx)));
+    var sx = C.W / innerWidth, H = Math.min(3200, Math.max(240, Math.round(innerHeight * sx)));
     var c = mk(C.W, H), x = c.getContext("2d");
     var wear = document.getElementById("wear");
     if (wear && wear.width) x.drawImage(wear, 0, 0, C.W, H);
@@ -210,7 +232,7 @@
   }
 
   /* ---------- States ---------- */
-  var states = [], pos = 0, target = 0, shown = -1, next = Date.now() + C.SNAP_MS, G = 100, BW = 400, moved = false, down = null, snapT, inView = true;
+  var states = [], pos = 0, target = 0, shown = -1, next = Date.now() + C.SNAP_MS, G = 100, BW = 400, moved = false, down = null, snapT, inView = true, popped = null;
 
   function dim(o) { var w = BW, h = BW / o.ar; o.el.style.cssText += ";width:" + w + "px;height:" + h + "px;left:" + (-w / 2) + "px;top:" + (-h / 2) + "px"; }
   function add(o) {
@@ -227,7 +249,8 @@
     var fr = document.createElement("div"); fr.className = "vf"; d.appendChild(fr);
     var im = document.createElement("img"); im.src = o.img; im.alt = ""; fr.appendChild(im);
     var t = document.createElement("div"); t.className = "vt"; t.textContent = fd(o.ts) + " " + ft(o.ts); fr.appendChild(t);
-    d.onclick = function () { if (!moved) target = states.indexOf(o); };
+    o.sx = 0;
+    d.onclick = function () { if (moved) return; target = states.indexOf(o); popped = popped === o ? null : o; };
     o.el = d; dim(o);
     document.getElementById("vwo").appendChild(d);
     states.unshift(o); pos += 1; if (target > 0) target += 1;
@@ -235,8 +258,10 @@
   }
   function save() {
     var a = states.map(function (s) { return { ts: s.ts, ar: s.ar, img: s.img, cov: s.cov, wear: s.wear, gh: s.gh, wh: s.wh, co2: s.co2, kb: s.kb, st: s.st }; });
-    try { localStorage.setItem(C.KEY, JSON.stringify(a)); }
-    catch (e) { try { localStorage.setItem(C.KEY, JSON.stringify(a.slice(0, 10))); } catch (e2) {} }
+    /* localStorage ist klein (~5 MB): bei hoher Auflösung so viele neueste Frames behalten, wie hineinpassen */
+    for (var n = a.length; n > 0; n = Math.floor(n * 0.7) || (n > 1 ? 1 : 0)) {
+      try { localStorage.setItem(C.KEY, JSON.stringify(a.slice(0, n))); return; } catch (e) {}
+    }
   }
 
   /* ---------- Anzeige ---------- */
@@ -253,7 +278,9 @@
         o = d < 0 ? Math.max(0, 1 + d * .9) : Math.max(FRAME.minOpacity, 1 - d * FRAME.fade);
       s.el.style.visibility = o <= .01 || d > FRAME.maxVisible ? "hidden" : "visible";
       s.el.style.setProperty("--o", (o * FRAME.opacity).toFixed(3));
-      s.el.style.transform = "translate3d(0," + (-d * FRAME.yStep).toFixed(1) + "px," + (-d * G * (d < 0 ? 1.7 : 1)).toFixed(1) + "px)";
+      var goal = s === popped ? FRAME.slide * BW : 0;
+      s.sx += (goal - s.sx) * FRAME.slideSpeed; if (Math.abs(goal - s.sx) < .05) s.sx = goal;
+      s.el.style.transform = "translate3d(" + s.sx.toFixed(1) + "px," + (-d * FRAME.yStep).toFixed(1) + "px," + (-d * G * (d < 0 ? 1.7 : 1)).toFixed(1) + "px)";
       s.el.classList.toggle("on", Math.abs(d) < .5);
     });
   }
@@ -275,17 +302,18 @@
 
   /* ---------- Navigation ---------- */
   var settle = function () { clearTimeout(snapT); snapT = setTimeout(function () { target = Math.round(target); }, 180); };
-  v.addEventListener("wheel", function (e) { e.preventDefault(); target = clampN(target + (e.deltaY + e.deltaX) * .003); settle(); }, { passive: false });
+  v.addEventListener("wheel", function (e) { e.preventDefault(); popped = null; target = clampN(target + (e.deltaY + e.deltaX) * .003); settle(); }, { passive: false });
   v.addEventListener("pointerdown", function (e) { down = [e.clientX, e.clientY]; moved = false; });
   addEventListener("pointermove", function (e) {
     if (!down) return;
     var dx = e.clientX - down[0], dy = e.clientY - down[1];
-    if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
+    if (Math.abs(dx) + Math.abs(dy) > 4) { moved = true; popped = null; }
     target = clampN(target - (dx + dy) * .006); down = [e.clientX, e.clientY]; settle();
   });
   addEventListener("pointerup", function () { down = null; settle(); setTimeout(function () { moved = false; }, 0); });
   addEventListener("keydown", function (e) {
     if (!inView) return; var k = e.key;
+    if (/^(Arrow|Page)/.test(k)) popped = null;
     if (k === "ArrowRight" || k === "ArrowDown" || k === "PageDown") target = clampN(Math.round(target) + 1);
     if (k === "ArrowLeft" || k === "ArrowUp" || k === "PageUp") target = clampN(Math.round(target) - 1);
   });
@@ -300,6 +328,125 @@
       modes.children[0].classList.toggle("on", inView);
       modes.children[1].classList.toggle("on", !inView);
     }, { threshold: .5 }).observe(v);
+
+  /* ---------- Graph "All metrics in one graph": Hilfslinien (0 / 50 / 100 %) weg, [ ] / [•] vor den Kategorien ---------- */
+  var GRAPH = {
+    hideRefLines: true,   /* waagrechte Hilfslinien + Beschriftung 0 / 50 / 100 % ausblenden */
+    checkboxes: true,     /* vor jeder klickbaren Kategorie [ ] bzw. [•] */
+    hideAllLines: false,   /* im Graphen überhaupt keine Linien im Hintergrund (nur die Datenkurven bleiben) */
+    arrange: true,        /* Reihenfolge: Header, Baseline t0, "All values count from here", Kategorien, Graph */
+    blockGap: 1           /* Leerzeilen zwischen diesen Blöcken */
+  };
+
+  function clsOf(n) { var c = n.className; return (c && c.baseVal !== undefined ? c.baseVal : c) || ""; }
+  function graphRoot() {
+    var hs = stage.querySelectorAll("h1,h2,h3,h4,.sub,.note");
+    for (var i = 0; i < hs.length; i++)
+      if (/all metrics in one graph/i.test(hs[i].textContent)) return hs[i].closest("section") || hs[i].parentElement;
+    return null;
+  }
+  function isOn(b) {
+    var c = clsOf(b);
+    if (/(^|[\s_-])(off|dim|dimmed|hidden|hide|inactive|muted|disabled|unselected|deselected)($|[\s_-])/i.test(c)) return false;
+    if (/(^|[\s_-])(on|active|sel|selected|checked|show|shown|visible)($|[\s_-])/i.test(c)) return true;
+    var ap = b.getAttribute("aria-pressed"); if (ap === null) ap = b.getAttribute("aria-checked");
+    if (ap !== null) return ap === "true";
+    return parseFloat(getComputedStyle(b).opacity) >= 0.8;
+  }
+  function hideEl(n) { if (n.getAttribute("data-vh")) return; n.setAttribute("data-vh", "1"); n.style.setProperty("display", "none", "important"); }
+
+  /* Kategorien oben, Graph darunter (falls die Legende im DOM hinter dem Graphen steht) */
+  function layoutGraph(root) {
+    var legend = root.querySelector(".legend"), g = root.querySelector("canvas") || root.querySelector("svg");
+    if (!legend || !g || legend.contains(g) || g.contains(legend)) return;
+    var p = legend.parentElement;
+    while (p && !p.contains(g)) p = p.parentElement;
+    if (!p || p === root || p.getAttribute("data-vl")) return;
+    p.setAttribute("data-vl", "1");
+    var kid = function (n) { while (n.parentElement !== p) n = n.parentElement; return n; };
+    var lc = kid(legend), gc = kid(g);
+    p.style.setProperty("display", "flex", "important");
+    p.style.setProperty("flex-direction", "column", "important");
+    p.style.setProperty("align-items", "flex-start", "important");
+    lc.style.setProperty("order", "-1"); lc.style.setProperty("width", "100%");
+    gc.style.setProperty("order", "1"); gc.style.setProperty("align-self", "stretch");
+  }
+
+  /* kleinstes Element, dessen Text re trifft (inline-Teile werden zum Elternelement hochgezogen) */
+  function leafText(re) {
+    var all = stage.querySelectorAll("*");
+    for (var i = 0; i < all.length; i++) {
+      var n = all[i];
+      if (v.contains(n) || /^(SCRIPT|STYLE|BUTTON|SVG|CANVAS)$/i.test(n.tagName) || !re.test(n.textContent)) continue;
+      var deeper = false;
+      for (var j = 0; j < n.children.length; j++) if (re.test(n.children[j].textContent)) { deeper = true; break; }
+      if (deeper) continue;
+      while (n.parentElement && n.parentElement !== stage && /^(SPAN|B|I|EM|STRONG|TIME|SMALL)$/i.test(n.tagName)) n = n.parentElement;
+      return n;
+    }
+    return null;
+  }
+  function sp(n, k, val) { if (n.style.getPropertyValue(k) !== val) n.style.setProperty(k, val, "important"); }
+
+  function arrange(root) {
+    var h = null, hs = root.querySelectorAll("h1,h2,h3,h4");
+    for (var i = 0; i < hs.length; i++) if (/all metrics in one graph/i.test(hs[i].textContent)) { h = hs[i]; break; }
+    if (!h) return;
+    root.classList.add("vgr");
+    var kid = function (n) { while (n && n.parentElement !== root) n = n.parentElement; return n; };
+    var base = leafText(/baseline\s*t0/i), note = leafText(/all values count from here/i);
+    var hk = kid(h);
+    if (!hk) return;
+    /* Baseline-/Hinweis-Zeile gehören unter den Header; stehen sie woanders, hierher verschieben */
+    [base, note].forEach(function (n, idx) {
+      if (!n || n === h || n.contains(h) || (base && note && idx === 1 && (base.contains(note) || note.contains(base)))) return;
+      if (!root.contains(n)) { var ref = idx === 0 ? hk.nextSibling : (base && root.contains(base) ? kid(base).nextSibling : hk.nextSibling); root.insertBefore(n, ref); }
+    });
+    var legend = root.querySelector(".legend"), g = root.querySelector("canvas") || root.querySelector("svg");
+    var seq = [h, base, note, legend, g], seen = [], gap = (GRAPH.blockGap * THEME.textSize * 1.25).toFixed(1) + "px";
+    sp(root, "display", "flex"); sp(root, "flex-direction", "column"); sp(root, "align-items", "flex-start"); sp(root, "justify-content", "flex-start");
+    seq.forEach(function (n, idx) {
+      if (!n || !root.contains(n)) return;
+      var k = kid(n);
+      if (!k || seen.indexOf(k) >= 0) return;
+      seen.push(k);
+      sp(k, "order", String(idx)); sp(k, "align-self", idx === 4 ? "stretch" : "flex-start");
+      if (idx >= 2) sp(k, "margin-top", gap);
+    });
+  }
+
+  function decorate() {
+    var root = graphRoot() || stage;
+    if (GRAPH.checkboxes) {
+      var btns = stage.querySelectorAll(".legend button");
+      if (!btns.length && root !== stage) btns = root.querySelectorAll("button");
+      Array.prototype.forEach.call(btns, function (b) {
+        if (v.contains(b)) return;
+        var m = b.querySelector(":scope > .vcb");
+        if (!m) { m = document.createElement("span"); m.className = "vcb"; b.insertBefore(m, b.firstChild); }
+        var t = isOn(b) ? "[•]" : "[ ]";
+        if (m.textContent !== t) m.textContent = t;
+      });
+    }
+    if (root !== stage) { layoutGraph(root); if (GRAPH.arrange) arrange(root); }
+    if (GRAPH.hideRefLines) {
+      Array.prototype.forEach.call(root.querySelectorAll("svg line"), function (l) {
+        if (GRAPH.hideAllLines || Math.abs((parseFloat(l.getAttribute("y1")) || 0) - (parseFloat(l.getAttribute("y2")) || 0)) < 0.5) hideEl(l);
+      });
+      Array.prototype.forEach.call(root.querySelectorAll("svg [class*='grid'],svg [class*='guide'],svg [class*='ref'],svg [class*='tick']"), hideEl);
+      Array.prototype.forEach.call(root.querySelectorAll("*"), function (n) {
+        if (n.children.length || n.closest("button,td,th,.vp")) return;
+        if (/^\s*(0|50|100)\s*%\s*$/.test(n.textContent)) hideEl(n);
+      });
+    }
+  }
+  var decT = 0;
+  function decorateSoon() { if (!decT) decT = requestAnimationFrame(function () { decT = 0; decorate(); }); }
+  decorate();
+  if ("MutationObserver" in window)
+    new MutationObserver(function (ms) {
+      for (var i = 0; i < ms.length; i++) if (!v.contains(ms[i].target)) { decorateSoon(); return; }
+    }).observe(stage, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "aria-pressed", "aria-checked", "style"] });
 
   /* ---------- Start ---------- */
   var saved = [];

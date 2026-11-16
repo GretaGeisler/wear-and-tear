@@ -12,9 +12,9 @@
   color-scheme: only light;
 
   /* colours */
-  --bg: #f7f6f3;
-  --fg: #2f2723;
-  --fg-small: #2f2723;
+  --bg: #ffffff;
+  --fg: #000000;
+  --fg-small: #000000;
   --burn: #55524d;
   --title-opacity: 0.92;
 
