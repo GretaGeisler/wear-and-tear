@@ -12,7 +12,7 @@
   color-scheme: only light;
 
   /* colours */
-  --bg: #ded9d2;
+  --bg: #f7f6f3;
   --fg: #2f2723;
   --fg-small: #2f2723;
   --burn: #55524d;
@@ -712,8 +712,10 @@ body.hud-intro.hud-r-on #hud-r {
    Two layers: .sub-base = difference at 50 %, .sub-burn = screen, the burn-in (opacity set by burn.js). */
 
 .sub-img {
-  --w: min(900px, 94vw, 141vh);
-  --w: min(900px, 94vw, 141svh);
+  --w: min(700px, 94vw, 141vh); /* picture width: 700 x 467 px (3:2) - change 700px to resize */
+  --w: min(700px, 94vw, 141svh);
+  --sat: 0.6; /* colour saturation (1 = original, lower = greyer) */
+  --con: 1.35; /* contrast (1 = original, higher = harder) */
   --h: calc(var(--w) * 2 / 3);
 
   position: fixed;
@@ -741,7 +743,15 @@ body.hud-intro.hud-r-on #hud-r {
   opacity: 0.5;
 }
 
+/* SHOW TRACES: the picture itself is hidden, only its burn-in (.sub-burn, screen) stays visible */
+
+body.bare .sub-base.on {
+  opacity: 0;
+  transition-duration: 0.6s;
+}
+
 .sub-burn {
+  z-index: 5; /* same level as the cursor burns (#wear) but later in the page, so it lies on top of them and of the text ghosts */
   mix-blend-mode: screen;
   transition: opacity 1.5s ease;
 }
@@ -766,6 +776,7 @@ body.hud-intro.hud-r-on #hud-r {
   max-width: none;
   object-fit: cover;
   transform: translate(-50%, -50%) rotate(90deg);
+  filter: saturate(var(--sat)) contrast(var(--con));
 }
 
 @media (prefers-reduced-motion: reduce) {

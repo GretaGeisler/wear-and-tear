@@ -13,6 +13,8 @@
 
   var S = 6; // cell size in px
   var HALO = 14; // soft glow around a cursor burn
+  var GHOST_K = 1.6; // how strongly a text ghost shows (opacity = wear * this): big type
+  var GHOST_K_SMALL = 1.0; // ... and small type (under 28 px), lower = fainter
   var HALO_ALPHA = 0.3; // strongest the glow can get (lower = less "highlighted box" look)
   var PUSH_MS = 1500; // how often your traces are sent to the server
   var PULL_MS = 2500; // how often the traces of the others are fetched (= how "live" it is)
@@ -20,7 +22,7 @@
   var REST_PX = 8; // moving less than this many px still counts as "the same spot"
   var STILL_BURN_MS = 10000; // resting this long on one spot burns it in at once ...
   var STILL_BURN = 6; // ... with the weight of this many clicks
-  var IMG_STILL_MS = 10000; // the PICTURE of a sub-page starts to burn in after this much total stillness
+  var IMG_STILL_MS = 4000; // the PICTURE of a sub-page starts to burn in after this much total stillness
   var IMG_AT = 120; // seconds of stillness (beyond the first 10) until the picture is ~90 % burnt in (higher = slower)
   var BURN_AT = 40; // speed of the burn-IN (ghosts, cursor trails): higher = slower
   var WEAR_AT = 400; // speed of the WEAR % counter only: higher = slower
@@ -609,6 +611,7 @@
   }
 
   function place(c, pos, a) {
+    var fs = parseFloat(c.style.fontSize) || 0;
     c.style.cssText =
       c.style.cssText +
       ";position:absolute;margin:0;left:" +
@@ -620,11 +623,10 @@
       "px;height:" +
       pos[3] +
       "px;opacity:" +
-      Math.min(1, a * (c.tagName === "IMG" ? 0.8 : 1.6));
+      Math.min(1, a * (c.tagName === "IMG" ? 0.8 : fs && fs < 28 ? GHOST_K_SMALL : GHOST_K));
 
     // sharper for small type: the blur grows with the font size, and only big type gets a glow
     // (a glow on small type fills the gaps between the letters and looks like a highlighted box)
-    var fs = parseFloat(c.style.fontSize) || 0;
     var k = fs ? Math.min(1, fs / 48) : 0.6;
     c.style.setProperty("filter", "blur(" + (0.15 + 0.85 * k).toFixed(2) + "px)");
     c.style.setProperty(

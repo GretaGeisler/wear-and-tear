@@ -2,32 +2,37 @@
 //   <script src="/burn.js"></script>
 //   <script src="/intro.js"></script>
 //
-// FIRST SCREEN (.hero-index): builds itself up from top to bottom (small rows and the large
-//   texts between them), one part after the other, when it scrolls into view.
-//     data-stagger = pause between two parts (seconds)
-//     data-pause   = extra pause after each text
-//     data-fade    = how long one part takes to fade in
+// - Every .hero-index screen builds itself up from top to bottom (small rows and the
+//   large texts between them), one part after the other, when it scrolls into view.
+// - The FIRST time a screen appears it builds up slowly and nicely. When it comes into
+//   view AGAIN (e.g. you scroll back up) it builds up much faster, so you never have to wait.
+// - On the .hero-legend screen each entry (01..05) also reveals its category in the
+//   top-left corner info a moment AFTER its code (UN, CL ...) has faded in. After the last
+//   entry the top-right info (coordinates, clock) appears too. Once revealed, it stays.
 //
-// LEGEND SCREEN (.hero-legend inside .legend-track): coupled to scrolling. The screen stays in
-//   place while you scroll; every scroll step (it snaps) adds the next entry (01, 02, ...):
-//   number, then the explanation between the lines, then the code (UN, CL ...), and a moment
-//   later the matching category appears in the top-left corner info. Everything stays once
-//   it is there, so the entries build up one under the other.
+// Timing (set on the section, in seconds):
+//   data-stagger = pause between two parts (rows / texts)
+//   data-pause   = extra pause after each text before the next part begins
+//   data-fade    = how long one part takes to fade in (default 1.4)
 (function () {
   "use strict";
 
+  var sections = document.querySelectorAll(".hero-index");
+  if (!sections.length) return;
+
   var DEFAULT_STAGGER = 0.4;
   var DEFAULT_PAUSE = 0.5;
+  var DEFAULT_FADE = 1.4;
+  var HUD_LEAD = 1.2; // seconds after the code row appears until its corner info follows
 
-  // legend timing (seconds, counted from the moment the scroll step is reached)
-  var LEG_TEXT = 0.5; // explanation appears this long after the number
-  var LEG_CODE = 1.9; // the code (UN, CL ...) appears this long after the number
-  var LEG_HUD = 1.1; // the corner info follows this long after the code
-  var LEG_SKIP = 1.0; // extra delay per entry when several are reached at once (fast scrolling)
+  // when a screen comes into view AGAIN it builds up faster:
+  var REPEAT_SPEED = 0.3; // multiplies all waiting times (0.3 = about 3x faster, 1 = same as the first time)
+  var REPEAT_FADE = 0.5; // multiplies the fade time of every part (0.5 = twice as fast)
+  var OUT_FADE = 0.25; // seconds: how fast a screen clears itself once it is out of view
 
-  // ---------- first screen ----------
-  var sections = document.querySelectorAll(".hero-index:not(.hero-legend)");
-  var plans = [];
+  var IN_VIEW = 0.6; // how much of the screen must be visible before it starts building
+
+  var plans = []; // per section: its parts, their delays, and when each corner entry is revealed
 
   sections.forEach(function (sec) {
     var gap = parseFloat(sec.getAttribute("data-stagger"));
@@ -35,107 +40,115 @@
     var fade = parseFloat(sec.getAttribute("data-fade"));
     if (isNaN(gap)) gap = DEFAULT_STAGGER;
     if (isNaN(pause)) pause = DEFAULT_PAUSE;
-    if (!isNaN(fade)) sec.style.setProperty("--fade", fade + "s");
+    if (isNaN(fade)) fade = DEFAULT_FADE;
 
+    var legend = sec.classList.contains("hero-legend");
+    var parts = []; // { el, d }  d = delay of this part in seconds (first visit)
+    var reveals = [];
     var t = 0;
+    var afterInsert = false;
+
     sec.querySelectorAll(".index-item, .index-insert").forEach(function (p) {
-      p.style.setProperty("--d", t.toFixed(2) + "s");
-      if (p.classList.contains("index-insert")) t += pause; // breathe after every text
+      parts.push({ el: p, d: t });
+      if (p.classList.contains("index-insert")) {
+        t += pause; // breathe after every text, so it can be read
+        afterInsert = legend;
+      } else if (afterInsert) {
+        // the code row (UN, WP ...) just appeared under the text: now the corner info follows
+        reveals.push((t + HUD_LEAD) * 1000);
+        t += HUD_LEAD + 0.8; // wait until it is there before the next entry begins
+        afterInsert = false;
+      }
       t += gap;
     });
-    plans.push(sec);
+
+    plans.push({
+      sec: sec,
+      parts: parts,
+      reveals: reveals,
+      fade: fade,
+      legend: legend,
+      seen: false, // has this screen been built before?
+    });
   });
 
-  function goFirst() {
-    if (!("IntersectionObserver" in window)) {
-      plans.forEach(function (s) {
-        s.classList.add("show");
+  // build the screen up (slow the first time, fast afterwards)
+  function build(plan) {
+    var again = plan.seen;
+    var speed = again ? REPEAT_SPEED : 1;
+    plan.sec.style.setProperty("--fade", (plan.fade * (again ? REPEAT_FADE : 1)).toFixed(2) + "s");
+    plan.parts.forEach(function (p) {
+      p.el.style.setProperty("--d", (p.d * speed).toFixed(2) + "s");
+    });
+    plan.sec.classList.add("show");
+
+    // the corner info is revealed only once, on the first visit (afterwards it stays)
+    if (!again && plan.legend && window.WT_HUD) {
+      plan.reveals.forEach(function (ms, k) {
+        setTimeout(function () {
+          window.WT_HUD.reveal(k + 1);
+        }, ms);
       });
-      return;
     }
-    var io = new IntersectionObserver(
-      function (entries) {
-        entries.forEach(function (e) {
-          if (e.isIntersecting) {
-            io.unobserve(e.target);
-            e.target.classList.add("show");
-          }
-        });
-      },
-      { threshold: 0.6 },
-    );
-    plans.forEach(function (s) {
-      io.observe(s);
+    plan.seen = true;
+  }
+
+  // clear the screen quickly after it left the view, so it can build up again next time
+  function reset(plan) {
+    plan.sec.classList.remove("show");
+    plan.sec.style.setProperty("--fade", OUT_FADE + "s");
+    plan.parts.forEach(function (p) {
+      p.el.style.setProperty("--d", "0s");
     });
   }
 
-  // ---------- legend screen, driven by scrolling ----------
-  var track = document.querySelector(".legend-track");
-  var legend = track && track.querySelector(".hero-legend");
-
-  function setupLegend() {
-    var kids = Array.prototype.slice.call(legend.querySelectorAll(".index-item, .index-insert"));
-    // entries are three parts each: number, explanation, code
-    var entries = [];
-    for (var i = 0; i + 2 < kids.length; i += 3) entries.push([kids[i], kids[i + 1], kids[i + 2]]);
-    var n = entries.length;
-
-    // the track is n screens tall; one snap point per entry
-    track.style.height = "calc(100vh * " + n + ")";
-    track.style.height = "calc(100svh * " + n + ")";
-    for (var k = 0; k < n; k++) {
-      var a = document.createElement("span");
-      a.className = "legend-snap";
-      a.style.top = "calc(100vh * " + k + ")";
-      a.style.top = "calc(100svh * " + k + ")";
-      track.appendChild(a);
+  function go() {
+    if (!("IntersectionObserver" in window)) {
+      plans.forEach(build);
+      return;
     }
 
-    var shown = -1; // last entry that has been revealed
+    var byEl = new Map();
+    plans.forEach(function (p) {
+      byEl.set(p.sec, p);
+    });
 
-    function reveal(k, extra) {
-      var e = entries[k];
-      var d = [0, LEG_TEXT, LEG_CODE];
-      e.forEach(function (el, j) {
-        el.style.setProperty("--d", (extra + d[j]).toFixed(2) + "s");
-        el.classList.add("on");
-      });
-      setTimeout(function () {
-        if (window.WT_HUD) window.WT_HUD.reveal(k + 1);
-      }, (extra + LEG_CODE + LEG_HUD) * 1000);
-    }
+    // enough of the screen is visible -> build it (also works for screens taller than the window)
+    var enter = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (e) {
+          var plan = byEl.get(e.target);
+          var enough =
+            e.intersectionRatio >= IN_VIEW ||
+            e.intersectionRect.height >= IN_VIEW * window.innerHeight;
+          if (enough && !plan.sec.classList.contains("show")) build(plan);
+        });
+      },
+      { threshold: [0, 0.2, 0.4, 0.6, 0.8, 1] },
+    );
 
-    var ticking = false;
-    function update() {
-      ticking = false;
-      var top = track.getBoundingClientRect().top;
-      var vh = window.innerHeight || 1;
-      // an entry is revealed once its scroll step is (almost) reached
-      var step = Math.min(n - 1, Math.floor(-top / vh + 0.6));
-      var extra = 0;
-      while (shown < step) {
-        shown++;
-        reveal(shown, extra);
-        extra += LEG_SKIP;
-      }
-    }
-    function onScroll() {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(update);
-      }
-    }
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    update();
-  }
+    // completely out of view -> reset
+    var leave = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) return;
+          var plan = byEl.get(e.target);
+          if (plan.sec.classList.contains("show")) reset(plan);
+        });
+      },
+      { threshold: [0] },
+    );
 
-  function init() {
-    goFirst();
-    if (track && legend) setupLegend();
+    plans.forEach(function (p) {
+      enter.observe(p.sec);
+      leave.observe(p.sec);
+    });
   }
 
   // give fonts and layout a moment, so the build-up is not cut off at the start
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { setTimeout(init, 400); });
-  else setTimeout(init, 600);
+  if (document.fonts && document.fonts.ready)
+    document.fonts.ready.then(function () {
+      setTimeout(go, 400);
+    });
+  else setTimeout(go, 600);
 })();
