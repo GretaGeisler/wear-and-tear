@@ -634,7 +634,7 @@ h2,
   object-fit: cover;
   transform: translate(-50%, -50%);
   mix-blend-mode: difference;
-  opacity: 0.5;
+  opacity: 0.3;
   z-index: 3;
   pointer-events: none;
 }

@@ -87,7 +87,7 @@
   };
 
   // burn-in: strength of the screen layer follows how often the page has stood still
-  var BURN_MAX = 0.85; // opacity of the screen layer when fully burnt in
+  var BURN_MAX = 0.55; // opacity of the screen layer when fully burnt in
   if (window.WT_BURN && WT_BURN.image) {
     WT_BURN.image("i:" + slug, function (w) {
       burn.wrap.style.opacity = (w * BURN_MAX).toFixed(3);
