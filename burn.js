@@ -20,6 +20,8 @@
   var REST_PX = 8; // moving less than this many px still counts as "the same spot"
   var STILL_BURN_MS = 10000; // resting this long on one spot burns it in at once ...
   var STILL_BURN = 6; // ... with the weight of this many clicks
+  var IMG_STILL_MS = 10000; // the PICTURE of a sub-page starts to burn in after this much total stillness
+  var IMG_AT = 120; // seconds of stillness (beyond the first 10) until the picture is ~90 % burnt in (higher = slower)
   var BURN_AT = 40; // speed of the burn-IN (ghosts, cursor trails): higher = slower
   var WEAR_AT = 400; // speed of the WEAR % counter only: higher = slower
   var DRAG_W = 0.08; // touch: weight of one drag sample (every 80 ms) in clicks
@@ -143,6 +145,8 @@
     restX = -999,
     restY = -999,
     restSince = 0,
+    lastAct = 0, // last click / key / touch / wheel (the mouse itself is tracked by restSince)
+    loadT = Date.now(),
     restDone = false,
     writing = false;
   var myId = null,
@@ -744,8 +748,46 @@
     true,
   );
 
+  // ---- picture burn-in (sub-pages) ----
+  // sub.js registers its picture with WT_BURN.image(key, cb). While NOTHING happens (no mouse movement,
+  // scrolling, click, key or touch) for IMG_STILL_MS, every further second of stillness is added to the
+  // picture. cb(w) gets how burnt in it is (0..1). The seconds are saved like the other burns
+  // (this browser, and shared with the other visitors), so the burn stays.
+  var imgKey = null,
+    imgCb = null;
+  function imgWear() {
+    var u = (me.hover[imgKey] || 0) + (others.hover[imgKey] || 0);
+    return 1 - Math.exp((-u / IMG_AT) * 2.3);
+  }
+  ["pointerdown", "keydown", "touchstart", "touchmove", "wheel"].forEach(function (ev) {
+    document.addEventListener(
+      ev,
+      function () {
+        lastAct = Date.now();
+      },
+      { passive: true, capture: true },
+    );
+  });
+  setInterval(function () {
+    if (!imgKey) return;
+    if (!document.hidden) {
+      var still = Date.now() - Math.max(restSince, lastScroll, lastAct, loadT);
+      if (still >= IMG_STILL_MS) {
+        add(me.hover, imgKey, 1);
+        add(delta.hover, imgKey, 1);
+        dirty = true;
+      }
+    }
+    imgCb(imgWear());
+  }, 1000);
+
   // used by the stats page
   window.WT_BURN = {
+    image: function (key, cb) {
+      imgKey = key;
+      imgCb = cb;
+      cb(imgWear());
+    },
     ghosts: countGhosts,
     wear: wearPct,
     keys: function () {
@@ -993,6 +1035,7 @@
     ghostSig = "";
     redraw = true;
     showHud();
+    if (imgKey) imgCb(imgWear());
   }
 
   function connectArtifact() {

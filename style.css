@@ -12,9 +12,9 @@
   color-scheme: only light;
 
   /* colours */
-  --bg: #eeeae6;
-  --fg: #161211;
-  --fg-small: #161211;
+  --bg: #ded9d2;
+  --fg: #2f2723;
+  --fg-small: #2f2723;
   --burn: #55524d;
   --title-opacity: 0.92;
 
@@ -617,6 +617,47 @@ h2,
 
 
 /* =========================================
+   SUBPAGES – CENTRED PICTURE + INDEX HEADING
+   ========================================= */
+
+/* centred picture, about 600 x 900 (smaller on narrow screens, same proportions).
+   It sits OUTSIDE #stage on purpose: inside it, "difference" would have no background to blend with. */
+
+.subimg {
+  position: absolute;
+  top: 50vh;
+  top: 50svh;
+  left: 50%;
+  width: min(600px, 92vw);
+  aspect-ratio: 2 / 3;
+  height: auto;
+  object-fit: cover;
+  transform: translate(-50%, -50%);
+  mix-blend-mode: difference;
+  opacity: 0.5;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* the heading of a subpage, standing in the index column like the large texts of the start page */
+
+.hero-index .index-insert.index-title {
+  margin: 0;
+  font-size: 48px;
+  font-weight: normal;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 700px) {
+  .hero-index .index-insert.index-title {
+    font-size: clamp(26px, 9vw, 36px);
+    letter-spacing: 0.02em;
+  }
+}
+
+
+/* =========================================
    START PAGE INTRO – BUILD-UP + HUD REVEAL
    ========================================= */
 
@@ -649,8 +690,87 @@ body.hud-intro.hud-r-on #hud-r {
   pointer-events: auto;
 }
 
+/* =========================================
+   SUB-PAGES – INDEX ROWS, HEADING, PICTURE
+   ========================================= */
+
+/* the heading takes the place of its letter and looks exactly like the other small rows */
+
+.hero-index h1.index-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: normal;
+  line-height: 50px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-shadow: none;
+  filter: none;
+}
+
+/* picture: fixed to the screen (only the text scrolls), centred, turned by 90 degrees and cropped to a
+   3:2 landscape frame (about 900 x 600). It sits OUTSIDE #stage so it can blend with the page.
+   Two layers: .sub-base = difference at 50 %, .sub-burn = screen, the burn-in (opacity set by burn.js). */
+
+.sub-img {
+  --w: min(900px, 94vw, 141vh);
+  --w: min(900px, 94vw, 141svh);
+  --h: calc(var(--w) * 2 / 3);
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0;
+}
+
+.sub-base {
+  mix-blend-mode: difference;
+  transition: opacity 2.4s ease;
+}
+
+.sub-base.on {
+  opacity: 0.5;
+}
+
+.sub-burn {
+  mix-blend-mode: screen;
+  transition: opacity 1.5s ease;
+}
+
+.sub-frame {
+  position: relative;
+  width: var(--w);
+  height: var(--h);
+  overflow: hidden;
+}
+
+/* the picture is laid on its side (it is as wide as the frame is tall), then turned by 90 degrees;
+   frame width = --w, frame height = --h */
+
+.sub-frame img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: var(--h);
+  height: var(--w);
+  max-width: none;
+  object-fit: cover;
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
 @media (prefers-reduced-motion: reduce) {
 
+  .sub-img,
   .hero-index .index-item,
   .hero-index .index-insert,
   body.hud-intro #hud-l .hud-group,

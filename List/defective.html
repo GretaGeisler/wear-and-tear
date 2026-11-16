@@ -80,16 +80,18 @@
   </head>
   <body>
 
-<div id="bg"><img id="tex" src="./image2.png" alt="" /></div>
+<div id="bg"><img id="tex" src="/image2.png" alt="" /></div>
     <div id="crt"></div>
     <div id="grain"></div>
 
     <a class="back" href="/">ESC</a>
 
     <div id="stage">
-      <section class="hero">
-        <h1>DEFECTIVE</h1>
-      </section>
+      <!-- sub.js builds the index rows (01) P ... (07) D, this heading stands in place of its letter
+           and adds the picture (default: /img/defective.jpg, or set data-img="...") -->
+      <div class="hero-index sub-index">
+        <h1 class="index-item index-title">DEFECTIVE</h1>
+      </div>
 
       <!-- Textblock: Absätze hier ersetzen oder ergänzen -->
       <section class="textsec" id="text">
@@ -114,6 +116,7 @@
     <script src="/grain.js"></script>
     <script src="/tracker.js"></script>
     <script src="/burn.js"></script>
+    <script src="/sub.js"></script>
 
     <script>
       (function () {
