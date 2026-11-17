@@ -214,26 +214,74 @@
        MOBILE
        ========================================= */
 
-    @media (max-width: 700px) {
+/* =========================================
+   MOBILE
+   ========================================= */
 
-      #hud-l {
-        gap: 20px;
-      }
+@media (max-width: 700px) {
 
-      .hud-group {
-        gap: 5px;
-      }
+  h1 {
+    font-size: clamp(26px, 9.5vw, 48px);
+  }
 
-      #hud-r {
-        gap: 10px;
-      }
+  #list li a {
+    font-size: clamp(26px, 9vw, 36px);
 
-      .hero-index .index-insert {
-        font-size: clamp(11px, 3.2vw, 14px);
-        letter-spacing: 0.08em;
-      }
-    }
+    grid-template-columns: 0.7fr 2.6fr 0.7fr;
 
+    column-gap: 8px;
+    padding: 10px 0;
+  }
+
+  /* ---- HUD: abbreviated, one tight row ----
+     "body" in front on purpose: it beats the HUD rules in the <style> of the pages. */
+
+  body #hud-l {
+    left: 12px;
+    gap: 10px;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  body #hud-l .hud-group {
+    gap: 4px;
+    font-size: 10px;
+  }
+
+  body #hud-r {
+    right: 12px;
+    gap: 0;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  /* no X / Y tracker on mobile, only the clock stays */
+  body #hud-xy {
+    display: none;
+  }
+
+  /* the long label is hidden, a short one is drawn instead */
+  body #hud-l .hud-group > span:first-child {
+    font-size: 0;
+  }
+
+  body #hud-l .hud-group > span:first-child::before {
+    font-size: 10px;
+  }
+
+  body #hud-l .hud-group:nth-child(1) > span:first-child::before { content: "UN"; }
+  body #hud-l .hud-group:nth-child(2) > span:first-child::before { content: "CL"; }
+  body #hud-l .hud-group:nth-child(3) > span:first-child::before { content: "WP"; }
+  body #hud-l .hud-group:nth-child(4) > span:first-child::before { content: "PU"; }
+  body #hud-l .hud-group:nth-child(5) > span:first-child::before { content: "CO"; }
+
+  /* large inserted text */
+
+  .hero-index .index-insert {
+    font-size: clamp(11px, 3.2vw, 14px);
+    letter-spacing: 0.08em;
+  }
+}
 
 /* list titles: small type like the scrolls above, no underline */
 #list a.index-item {
