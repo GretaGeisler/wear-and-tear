@@ -106,7 +106,7 @@ h1,
 .hud,
 #tog,
 .back {
-  filter: blur(0.2px);
+  filter: none;
 }
 
 
@@ -879,3 +879,4 @@ body.bare .sub-base.on {
     transform: none;
   }
 }
+
