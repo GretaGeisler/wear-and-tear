@@ -22,8 +22,8 @@
   var REST_PX = 8; // moving less than this many px still counts as "the same spot"
   var STILL_BURN_MS = 10000; // resting this long on one spot burns it in at once ...
   var STILL_BURN = 6; // ... with the weight of this many clicks
-  var IMG_STILL_MS = 4000; // the PICTURE of a sub-page starts to burn in after this much total stillness
-  var IMG_AT = 120; // seconds of stillness (beyond the first 10) until the picture is ~90 % burnt in (higher = slower)
+  var IMG_STILL_MS = 2000; // the PICTURE of a sub-page starts to burn in after this much total stillness
+  var IMG_AT = 25; // seconds of stillness (beyond the first 10) until the picture is ~90 % burnt in (higher = slower)
   var BURN_AT = 40; // speed of the burn-IN (ghosts, cursor trails): higher = slower
   var WEAR_AT = 400; // speed of the WEAR % counter only: higher = slower
   var DRAG_W = 0.08; // touch: weight of one drag sample (every 80 ms) in clicks

@@ -714,8 +714,8 @@ body.hud-intro.hud-r-on #hud-r {
 .sub-img {
   --w: min(700px, 94vw, 141vh); /* picture width: 700 x 467 px (3:2) - change 700px to resize */
   --w: min(700px, 94vw, 141svh);
-  --sat: 0.6; /* colour saturation (1 = original, lower = greyer) */
-  --con: 1.35; /* contrast (1 = original, higher = harder) */
+  --sat: 0.4; /* colour saturation (1 = original, lower = greyer) */
+  --con: 1.6; /* contrast (1 = original, higher = harder) */
   --h: calc(var(--w) * 2 / 3);
 
   position: fixed;
