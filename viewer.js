@@ -63,6 +63,14 @@
     showWear: false,               /* Cursor-Burns (#wear) auf der Seite zeigen; Screenshots enthalten sie trotzdem */
     showGhosts: false,             /* Text-Ghosts (#ghosts) auf der Seite zeigen */
     textSize: 12,                  /* px: Text + Überschriften unter dem Viewer (wie die Zeile oben) */
+    legendGap: 2,                  /* px zwischen den Kategorien im Graph-Bereich */
+    graphGap: 8,                   /* px zwischen Kategorienliste und Graph (kleiner = Graph sitzt höher) */
+    metricCols: "210px 110px 340px 60px", /* feste Spaltenbreiten bei "Each metric": Name | Wert | Kurve | Änderung (Desktop) */
+    metricColGap: 12,              /* px zwischen den Spalten */
+    metricRowPad: 0,               /* px oben/unten pro Zeile */
+    metricGraphH: 16,              /* px Höhe der kleinen Kurven */
+    metricLine: 1.05,              /* Zeilenhöhe der Texte (kleiner = Zeilen enger) */
+    tierCols: "220px auto",        /* "Decay level of the sub-pages": Breite der Namensspalte | Prozent */
     headGap: 2                     /* Leerzeilen über jeder Überschrift (z. B. "All live measurements"), 0 = keine */
   };
 
@@ -89,7 +97,7 @@
     "#tblsec:not(.dsec),.dsec,#list{filter:url(#xerox-s);opacity:var(--title-opacity)}" +
     "#tblsec .dsec,#tblsec #list{filter:none;opacity:1}" +
     "#stage table{margin:0!important;border-collapse:collapse!important}" +
-    "#stage>:not(#viewer) h1,#stage>:not(#viewer) h2,#stage>:not(#viewer) h3,#tblsec h2,.dsec h2{margin-top:" + (THEME.headGap * THEME.textSize * 1.25).toFixed(1) + "px!important;margin-bottom:0!important}" +
+    "#stage>:not(#viewer) h1,#stage>:not(#viewer) h2,#tblsec h2,.dsec h2{margin-top:" + (THEME.headGap * THEME.textSize * 1.25).toFixed(1) + "px!important;margin-bottom:0!important}" +
     "#tblsec,.dsec,#list{justify-content:flex-start!important;align-items:flex-start!important}" +
     "#list ul{margin:0!important;max-width:none!important}" +
     "#stage th,#stage td{padding:4px 24px 4px 0!important}" +
@@ -128,10 +136,27 @@
     ".vp b{font-weight:300}.vb{cursor:pointer;opacity:.55}.vb.on{opacity:1}" +
     "#vinfo{left:14px;top:30px;flex-direction:column;align-items:flex-start;gap:6px}" +
     "#vpan{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:12px}" +
-    "#stage .legend{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:6px!important;width:100%;text-align:left!important}" +
+    "#stage .legend{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:" + THEME.legendGap + "px!important;margin:0!important;width:100%;text-align:left!important}" +
+    "#stage .legend button .dot{display:none!important}" +
+    "#stage h2{display:block!important;padding-bottom:0!important}" +
+    "#sub{white-space:pre-line!important;margin:0!important}" +
     "#stage .legend button{display:block!important;margin:0!important;padding:0!important;background:none!important;border:0!important;text-align:left!important;white-space:nowrap;" +
       "font:400 " + THEME.textSize + "px/1.25 'Times New Roman',Times,serif!important;text-transform:uppercase!important;color:var(--fg-small)!important}" +
     "#stage .vgr :not(svg):not(svg *){font:400 " + THEME.textSize + "px/1.25 'Times New Roman',Times,serif!important;text-transform:uppercase!important;text-align:left!important;color:var(--fg-small)!important}" +
+    "#vtip{position:fixed;z-index:50;pointer-events:none;display:none;font:400 10px/1 'Times New Roman',Times,serif;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;color:var(--fg-small)}" +
+    "#stage .grid{margin:0!important;max-width:100%!important}" +
+    "#stage .card{column-gap:" + THEME.metricColGap + "px!important;padding:" + THEME.metricRowPad + "px 0!important;align-items:center!important}" +
+    "#stage .card,#stage .card *{line-height:" + THEME.metricLine + "!important}" +
+    "#stage .card canvas{height:" + THEME.metricGraphH + "px!important}" +
+    "#stage .card h3,#stage .card .val,#stage .card .pct{margin:0!important}" +
+    "#stage .card .pct{text-align:right!important}" +
+    "@media(min-width:701px){#stage .grid{width:max-content!important}#stage .card{grid-template-columns:" + THEME.metricCols + "!important}}" +
+    /* Decay levels + Erklärtexte: alles linksbündig */
+    "#stage ol.tiers{margin:0 0 24px!important;padding:0!important;text-align:left!important}" +
+    "#stage ol.tiers li{display:grid!important;grid-template-columns:" + THEME.tierCols + "!important;justify-content:start!important;column-gap:12px!important;width:auto!important;margin:0!important;padding:1px 0!important}" +
+    "#stage ol.tiers li>span:empty{display:none!important}" +
+    "#stage ol.tiers li .tpct{text-align:left!important}" +
+    "#stage .note{margin:14px 0 0!important;max-width:none!important;text-align:left!important}" +
     ".vcb{display:inline-block;min-width:2.4em;margin-right:.5em;white-space:pre;text-align:left}" +
     "#vmodes{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 10px);z-index:20}" +
     "@media(max-width:700px){#vinfo{gap:4px}#vpan{gap:4px}}";
@@ -333,7 +358,11 @@
   var GRAPH = {
     hideRefLines: true,   /* waagrechte Hilfslinien + Beschriftung 0 / 50 / 100 % ausblenden */
     checkboxes: true,     /* vor jeder klickbaren Kategorie [ ] bzw. [•] */
-    hideAllLines: false,   /* im Graphen überhaupt keine Linien im Hintergrund (nur die Datenkurven bleiben) */
+    hideAllLines: true,   /* im Graphen überhaupt keine Linien im Hintergrund (nur die Datenkurven bleiben) */
+    allActive: true,      /* beim Laden alle Kategorien im Graphen aktiv (statt nur die erste) */
+    keepScroll: true,     /* Klick auf eine Kategorie darf die Seite nicht zu einem anderen Kapitel springen lassen */
+    hoverLabel: true,     /* Hover über eine Kurve: [Kategorie] klebt klein am Cursor */
+    hoverDist: 10,        /* px Abstand zur Kurve, ab dem das Label erscheint */
     arrange: true,        /* Reihenfolge: Header, Baseline t0, "All values count from here", Kategorien, Graph */
     blockGap: 1           /* Leerzeilen zwischen diesen Blöcken */
   };
@@ -411,7 +440,7 @@
       if (!k || seen.indexOf(k) >= 0) return;
       seen.push(k);
       sp(k, "order", String(idx)); sp(k, "align-self", idx === 4 ? "stretch" : "flex-start");
-      if (idx >= 2) sp(k, "margin-top", gap);
+      if (idx >= 2) sp(k, "margin-top", idx === 4 ? THEME.graphGap + "px" : gap);
     });
   }
 
@@ -440,9 +469,114 @@
       });
     }
   }
+  /* Der Graph ist ein <canvas>: die Hilfslinien (0 / 50 / 100 %) werden dort gemalt, nicht per CSS ausblendbar.
+     Wir filtern sie beim Zeichnen heraus (sie sind die einzigen Striche mit Deckkraft .18). */
+  (function () {
+    var cv = document.getElementById("combo");
+    if (cv && GRAPH.hideRefLines) {
+      var cx = cv.getContext("2d");
+      if (cx && !cx._vs) {
+        var st = cx.stroke;
+        cx.stroke = function () { if (/,\s*0?\.18\)\s*$/.test(String(this.strokeStyle))) return; return st.apply(this, arguments); };
+        cx._vs = 1;
+      }
+    }
+    /* "Baseline t0: …" und "all values count from here." durch einen Absatz trennen */
+    var sub = document.getElementById("sub");
+    if (sub && GRAPH.arrange) {
+      var d = Object.getOwnPropertyDescriptor(Node.prototype, "textContent");
+      Object.defineProperty(sub, "textContent", {
+        configurable: true,
+        get: function () { return d.get.call(this); },
+        set: function (t) { d.set.call(this, String(t).replace(/\u2003+/g, "\n\n")); }
+      });
+      sub.textContent = d.get.call(sub);
+    }
+  })();
+
+  /* Hover über eine Kurve des großen Graphen: [Kategorie] am Cursor.
+     Der Graph ist ein <canvas> ohne Objekte: wir protokollieren beim Zeichnen die Strecken jeder Kurve und ordnen sie ihrer Kategorie zu. */
+  (function () {
+    var cv = document.getElementById("combo");
+    if (!cv || !GRAPH.hoverLabel) return;
+    var cx = cv.getContext("2d");
+    if (!cx || cx._vh) return;
+    cx._vh = 1;
+    var rec = { lines: [], ids: [], cur: null };
+    var bp = cx.beginPath, mt = cx.moveTo, lt = cx.lineTo, st = cx.stroke, cr = cx.clearRect;
+    var btns = function () { return document.querySelectorAll("#legend button"); };
+    var nameOf = function (b) { return b.textContent.replace(/\[[^\]]*\]/, "").trim(); };
+
+    cx.clearRect = function () {            /* Anfang jedes Zeichnens: welche Kategorien werden diesmal gemalt? */
+      var lp = cv._lp || {};
+      rec.lines = []; rec.ids = []; rec.cur = null;
+      Array.prototype.forEach.call(btns(), function (b, i) {
+        if (b.classList.contains("off")) return;
+        var pr = lp[i]; if (pr === undefined) pr = cv._off ? 0 : 1;
+        if (pr > 0) rec.ids.push(i);
+      });
+      return cr.apply(this, arguments);
+    };
+    cx.beginPath = function () { rec.cur = []; return bp.apply(this, arguments); };
+    cx.moveTo = function (x, y) { if (rec.cur) rec.cur.push([x, y]); return mt.apply(this, arguments); };
+    cx.lineTo = function (x, y) { if (rec.cur) rec.cur.push([x, y]); return lt.apply(this, arguments); };
+    cx.stroke = function () {
+      var grid = /,\s*0?\.18\)\s*$/.test(String(this.strokeStyle));
+      if (!grid && rec.cur) {
+        var id = rec.ids.shift();
+        if (id !== undefined && rec.cur.length > 1) rec.lines.push({ id: id, pts: rec.cur });
+      }
+      return st.apply(this, arguments);
+    };
+
+    var tip = document.createElement("div");
+    tip.id = "vtip";
+    document.body.appendChild(tip);
+    var hide = function () { tip.style.display = "none"; };
+    var dseg = function (px, py, a, b) {
+      var dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy, t = l ? ((px - a[0]) * dx + (py - a[1]) * dy) / l : 0;
+      t = Math.max(0, Math.min(1, t));
+      var qx = a[0] + t * dx - px, qy = a[1] + t * dy - py;
+      return Math.sqrt(qx * qx + qy * qy);
+    };
+    cv.addEventListener("pointermove", function (e) {
+      var r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, best = 1e9, bid = -1;
+      rec.lines.forEach(function (L) {
+        for (var i = 1; i < L.pts.length; i++) {
+          var d = dseg(x, y, L.pts[i - 1], L.pts[i]);
+          if (d < best) { best = d; bid = L.id; }
+        }
+      });
+      var b = bid >= 0 ? btns()[bid] : null;
+      if (!b || best > GRAPH.hoverDist) { hide(); return; }
+      tip.textContent = "[" + nameOf(b) + "]";
+      tip.style.display = "block";
+      var w = tip.offsetWidth, left = e.clientX + 12;
+      if (left + w > innerWidth - 8) left = e.clientX - w - 12;
+      tip.style.left = left + "px";
+      tip.style.top = (e.clientY + 14) + "px";
+    });
+    cv.addEventListener("pointerleave", hide);
+    addEventListener("scroll", hide, { passive: true });
+  })();
+
   var decT = 0;
   function decorateSoon() { if (!decT) decT = requestAnimationFrame(function () { decT = 0; decorate(); }); }
   decorate();
+  if (GRAPH.allActive)
+    Array.prototype.forEach.call(document.querySelectorAll("#legend button.off"), function (b) { b.click(); });
+  /* Klick auf eine Kategorie: Scrollposition festhalten (Scroll-Snap springt sonst ins nächste Kapitel) */
+  var lg = document.getElementById("legend");
+  if (lg && GRAPH.keepScroll)
+    lg.addEventListener("click", function () {
+      var y = window.scrollY, root = document.documentElement, t0 = performance.now();
+      root.style.scrollSnapType = "none";
+      (function hold(now) {
+        if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+        if (now - t0 < 900) requestAnimationFrame(hold);
+        else root.style.scrollSnapType = "";
+      })(t0);
+    }, true);
   if ("MutationObserver" in window)
     new MutationObserver(function (ms) {
       for (var i = 0; i < ms.length; i++) if (!v.contains(ms[i].target)) { decorateSoon(); return; }
