@@ -880,3 +880,48 @@ body.bare .sub-base.on {
   }
 }
 
+/* =========================================
+   MOBILE HUD – same on every page
+   ========================================= */
+
+@media (max-width: 700px) {
+
+  body #hud-l {
+    left: 12px;
+    gap: 10px;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  body #hud-l .hud-group {
+    gap: 4px;
+    font-size: 10px;
+  }
+
+  body #hud-r {
+    right: 12px;
+    gap: 0;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  /* no X / Y on mobile, only the clock */
+  body #hud-xy {
+    display: none;
+  }
+
+  /* long label hidden, short one drawn instead */
+  body #hud-l .hud-group > span:first-child {
+    font-size: 0;
+  }
+
+  body #hud-l .hud-group > span:first-child::before {
+    font-size: 10px;
+  }
+
+  body #hud-l .hud-group:nth-child(1) > span:first-child::before { content: "UN"; }
+  body #hud-l .hud-group:nth-child(2) > span:first-child::before { content: "CL"; }
+  body #hud-l .hud-group:nth-child(3) > span:first-child::before { content: "WP"; }
+  body #hud-l .hud-group:nth-child(4) > span:first-child::before { content: "PU"; }
+  body #hud-l .hud-group:nth-child(5) > span:first-child::before { content: "CO"; }
+}
