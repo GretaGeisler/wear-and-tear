@@ -85,6 +85,18 @@
     headData: 15                   /* px zwischen Überschrift und Datenliste, überall gleich */
   };
 
+  /* ---------- EINBLENDEN "State archive": hier anpassen ---------- */
+  var ARCFADE = {
+    dur: 1.8,                      /* s Dauer pro Element (wie "Each metric") */
+    ease: "cubic-bezier(.22,.61,.36,1)",
+    head: 0.1,                     /* s Verzögerung Überschrift */
+    sub: 0.22,                     /* s Verzögerung Untertitel */
+    thead: 0.34,                   /* s Verzögerung Tabellenkopf */
+    rows: 0.46,                    /* s Startverzögerung der ersten Zeile */
+    rowStep: 70,                   /* ms zusätzlich pro Zeile */
+    threshold: 0.2                 /* Anteil des Bereichs, der sichtbar sein muss */
+  };
+
   var stage = document.getElementById("stage"),
     wrap = document.getElementById("wrap");
   if (!stage) return;
@@ -192,6 +204,13 @@
     "#vmodes .vb .s{display:none}" +
     /* State archive: Datum + Uhrzeit */
     "#arcsec .tt{margin-left:.4em;white-space:nowrap}#arcsec .dd{white-space:nowrap}" +
+    /* State archive: Einblenden beim Scrollen (Überschrift, Untertitel, Tabellenkopf, Zeilen gestaffelt) */
+    "#arcsec h2,#arcsec .sub,#arcsec thead,#arcsec tbody tr{opacity:0;transition:opacity " + ARCFADE.dur + "s " + ARCFADE.ease + ";transition-delay:0s}" +
+    "#arcsec.arc-in h2,#arcsec.arc-in .sub,#arcsec.arc-in thead,#arcsec.arc-in tbody tr{opacity:1}" +
+    "#arcsec.arc-in h2{transition-delay:" + ARCFADE.head + "s}" +
+    "#arcsec.arc-in .sub{transition-delay:" + ARCFADE.sub + "s}" +
+    "#arcsec.arc-in thead{transition-delay:" + ARCFADE.thead + "s}" +
+    "#arcsec.arc-in tbody tr{transition-delay:calc(var(--i,0) * " + ARCFADE.rowStep + "ms + " + ARCFADE.rows + "s)}" +
     /* Mobile: "All live measurements" immer einzeilig, ohne Abkürzen mit … (kurze Namen, enge Spalten) */
     "@media(max-width:700px){" +
       "#tblsec table{table-layout:auto!important;width:auto!important;max-width:100%!important}" +
@@ -391,7 +410,7 @@
   function arc() {
     var b = document.getElementById("varc"); if (!b) return;
     b.innerHTML = states.slice(0, 15).map(function (s, i) {
-      return '<tr><td class="no">' + (states.length - i) + '</td><td class="me"><span class="dd">' + fd(s.ts) + '</span> <span class="tt">' + ft(s.ts) + "</span></td><td>" + nf(s.wear, 2) + " %</td><td>" + nf(s.gh, 0) + "</td><td>" + nf(s.wh, 3) + " Wh</td><td>" + nf(s.st, 1) + " KB</td><td>" + nf(s.co2, 3) + " g</td></tr>";
+      return '<tr style="--i:' + i + '"><td class="no">' + (states.length - i) + '</td><td class="me"><span class="dd">' + fd(s.ts) + '</span> <span class="tt">' + ft(s.ts) + "</span></td><td>" + nf(s.wear, 2) + " %</td><td>" + nf(s.gh, 0) + "</td><td>" + nf(s.wh, 3) + " Wh</td><td>" + nf(s.st, 1) + " KB</td><td>" + nf(s.co2, 3) + " g</td></tr>";
     }).join("");
   }
 
@@ -448,6 +467,15 @@
       modes.children[0].classList.toggle("on", inView);
       modes.children[1].classList.toggle("on", !inView);
     }, { threshold: .5 }).observe(v);
+
+  /* State archive: beim Hineinscrollen einblenden, beim Verlassen zurücksetzen (wie die anderen Bereiche) */
+  if (arcSec) {
+    if ("IntersectionObserver" in window)
+      new IntersectionObserver(function (en) {
+        arcSec.classList.toggle("arc-in", en[0].isIntersecting);
+      }, { threshold: ARCFADE.threshold }).observe(arcSec);
+    else arcSec.classList.add("arc-in");
+  }
 
   /* ---------- Graph "All metrics in one graph": Hilfslinien (0 / 50 / 100 %) weg, [ ] / [•] vor den Kategorien ---------- */
   var GRAPH = {
