@@ -71,9 +71,9 @@
     metricGraphH: 16,              /* px Höhe der kleinen Kurven */
     metricLine: 1.05,              /* Zeilenhöhe der Texte (kleiner = Zeilen enger) */
     tierCols: "220px auto",        /* "Decay level of the sub-pages": Breite der Namensspalte | Prozent */
-    mobCodeGap: 8,                 /* Mobile, "All live measurements": px zwischen Code und Kategoriename */
-    mobNameGap: 10,                /* ... zwischen Kategoriename und T0 */
-    mobT0Gap: 12,                  /* ... zwischen T0 und Now */
+    mobCodeGap: 6,                 /* Mobile, "All live measurements": px zwischen Code und Kategoriename */
+    mobNameGap: 8,                 /* ... zwischen Kategoriename und T0 */
+    mobT0Gap: 8,                   /* ... zwischen T0 und Now */
     headTop: 54,                   /* px von Oberkante des Screens bis zur Überschrift (= Abstand HUD "User 1 …" -> Überschrift), überall gleich */
     headData: 15                   /* px zwischen Überschrift und Datenliste, überall gleich */
   };
@@ -169,11 +169,13 @@
     /* Mobile: "All live measurements" immer einzeilig, ohne Abkürzen mit … (kurze Namen, enge Spalten) */
     "@media(max-width:700px){" +
       "#tblsec table{table-layout:auto!important;width:auto!important;max-width:100%!important}" +
-      "#tblsec th,#tblsec td{white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;padding:4px 0!important;font-size:clamp(8px,2.4vw,11px)!important}" +
+      "#tblsec th,#tblsec td{white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;padding:4px 0!important;font-size:" + THEME.textSize + "px!important}" +
       "#tblsec th.no,#tblsec td.no{padding-right:" + THEME.mobCodeGap + "px!important}" +
       "#tblsec th.me,#tblsec td.me{padding-right:" + THEME.mobNameGap + "px!important}" +
       "#tblsec th.t0,#tblsec td.t0{padding-right:" + THEME.mobT0Gap + "px!important}" +
     "}" +
+    /* nur Handys unter 360px Breite: 1px kleiner, damit die Zeile noch passt */
+    "@media(max-width:359px){#tblsec th,#tblsec td{font-size:" + (THEME.textSize - 1) + "px!important}}" +
     /* Mobile: OVERVIEW -> OV, INDEX -> IN */
     "@media(max-width:700px){#vmodes .vb{font-size:0!important}#vmodes .vb::before{font-size:12px}#vmodes .vb[data-m=ov]::before{content:'OV'}#vmodes .vb[data-m=ix]::before{content:'IN'}}" +
     "@media(max-width:700px){#vinfo{gap:4px}#vpan{gap:4px;margin-top:" + (THEME.headData - 4) + "px}}";
