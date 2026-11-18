@@ -65,15 +65,16 @@
     textSize: 12,                  /* px: Text + Überschriften unter dem Viewer (wie die Zeile oben) */
     legendGap: 2,                  /* px zwischen den Kategorien im Graph-Bereich */
     graphGap: 8,                   /* px zwischen Kategorienliste und Graph (kleiner = Graph sitzt höher) */
-    metricCols: "210px 110px 340px 60px", /* feste Spaltenbreiten bei "Each metric": Name | Wert | Kurve | Änderung (Desktop) */
+    metricCols: "210px 110px 340px 60px", /* (nicht mehr genutzt, Each metric hat jetzt Name über Wert + Prozent) */
     metricColGap: 12,              /* px zwischen den Spalten */
     metricRowPad: 0,               /* px oben/unten pro Zeile */
-    metricGraphH: 16,              /* px Höhe der kleinen Kurven */
+    metricGraphH: 16,              /* px Höhe der kleinen Kurven (nicht mehr genutzt, Kurven sind ausgeblendet) */
+    metricPctGap: 24,              /* px Abstand zwischen Wert (61) und Prozent (+1,999.3% ↗) */
     metricLine: 1.05,              /* Zeilenhöhe der Texte (kleiner = Zeilen enger) */
     tierCols: "220px auto",        /* "Decay level of the sub-pages": Breite der Namensspalte | Prozent */
-    mobMetricVal: 100,             /* Mobile, "Each metric": px Breite der Wert-Spalte (Zeile 2, links) */
-    mobMetricPct: 60,              /* ... der Prozent-Spalte (Zeile 2, rechts) */
-    mobMetricPad: 6,               /* ... px Abstand oberhalb/unterhalb jedes Eintrags */
+    mobMetricVal: 100,             /* (nicht mehr genutzt) */
+    mobMetricPct: 60,              /* (nicht mehr genutzt) */
+    mobMetricPad: 6,               /* Mobile, "Each metric": px Abstand oberhalb/unterhalb jedes Eintrags */
     mobCodeGap: 6,                 /* Mobile, "All live measurements": px zwischen Code und Kategoriename */
     mobNameGap: 12,                /* ... zwischen Kategoriename und T0 */
     mobT0Gap: 12,                  /* ... zwischen T0 und Now */
@@ -157,10 +158,24 @@
     "#stage .grid{margin:0!important;max-width:100%!important}" +
     "#stage .card{column-gap:" + THEME.metricColGap + "px!important;padding:" + THEME.metricRowPad + "px 0!important;align-items:center!important}" +
     "#stage .card,#stage .card *{line-height:" + THEME.metricLine + "!important}" +
-    "#stage .card canvas{height:" + THEME.metricGraphH + "px!important}" +
     "#stage .card h3,#stage .card .val,#stage .card .pct{margin:0!important}" +
     "#stage .card .pct{text-align:right!important}" +
-    "@media(min-width:701px){#stage .grid{width:max-content!important}#stage .card{grid-template-columns:" + THEME.metricCols + "!important}}" +
+    /* "Each metric": keine Graphen. Zeile 1: Name. Zeile 2: Wert + Abstand + Prozent mit Pfeil. Gilt für Desktop und Handy. */
+    "#stage .card canvas{display:none!important}" +
+    "#stage .grid{width:max-content!important;max-width:100%!important}" +
+    "#stage .card{display:grid!important;grid-template-columns:auto auto!important;grid-template-areas:'n n' 'v p'!important;justify-content:start!important;column-gap:" + THEME.metricPctGap + "px!important;row-gap:0!important;align-items:baseline!important}" +
+    "#stage .card h3{grid-area:n!important}#stage .card .val{grid-area:v!important}#stage .card .pct{grid-area:p!important;text-align:left!important}" +
+    "#stage>:not(#viewer) .card .pct[data-dir='up']::after{content:' \\2197'!important;display:inline!important}" +
+    "#stage>:not(#viewer) .card .pct[data-dir='down']::after{content:' \\2198'!important;display:inline!important}" +
+    /* Desktop: dasselbe Layout nochmal mit höherer Spezifität, damit keine Seiten-CSS (z. B. 4 Spalten) es überstimmt */
+    "@media(min-width:701px){" +
+      "#stage #grid.grid,#stage #grid,#stage .grid{display:block!important;width:max-content!important;max-width:100%!important;grid-template-columns:none!important}" +
+      "#stage #grid .card,#stage .grid .card{display:grid!important;grid-template-columns:auto auto!important;grid-template-rows:auto auto!important;grid-template-areas:'n n' 'v p'!important;justify-content:start!important;column-gap:" + THEME.metricPctGap + "px!important;row-gap:0!important;align-items:baseline!important;width:auto!important;padding:" + THEME.mobMetricPad + "px 0!important}" +
+      "#stage #grid .card canvas,#stage .grid .card canvas{display:none!important}" +
+      "#stage #grid .card h3,#stage .grid .card h3{grid-area:n!important}" +
+      "#stage #grid .card .val,#stage .grid .card .val{grid-area:v!important;text-align:left!important}" +
+      "#stage #grid .card .pct,#stage .grid .card .pct{grid-area:p!important;text-align:left!important}" +
+    "}" +
     /* Decay levels + Erklärtexte: alles linksbündig */
     "#stage ol.tiers{margin:0 0 24px!important;padding:0!important;text-align:left!important}" +
     "#stage ol.tiers li{display:grid!important;grid-template-columns:" + THEME.tierCols + "!important;justify-content:start!important;column-gap:12px!important;width:auto!important;margin:0!important;padding:1px 0!important}" +
@@ -183,13 +198,11 @@
     /* Mobile: Screens so hoch wie der größtmögliche Bildschirm (lvh). Mit svh sind sie kürzer als der sichtbare Bereich,
        sobald die Browserleiste einfährt, und der Header des nächsten Screens schaut unten hervor. */
     "@media(max-width:700px){#tblsec,.dsec{min-height:100vh!important;min-height:100lvh!important}#viewer{height:100vh!important;height:100lvh!important}}" +
-    /* Mobile: "Each metric" zweizeilig. Zeile 1: Name. Zeile 2: Wert | Kurve | Änderung. Zeile 2 baut sich kurz nach Zeile 1 auf. */
+    /* Mobile: "Each metric" – Abstand pro Eintrag, Wert und Prozent bauen sich kurz nach dem Namen auf */
     "@media(max-width:700px){" +
-      "#stage .card{display:grid!important;grid-template-columns:" + THEME.mobMetricVal + "px minmax(0,1fr) " + THEME.mobMetricPct + "px!important;grid-template-areas:'n n n' 'v g p'!important;column-gap:12px!important;row-gap:3px!important;padding:" + THEME.mobMetricPad + "px 0!important;align-items:center!important}" +
-      "#stage .card h3{grid-area:n!important}#stage .card .val{grid-area:v!important}#stage .card canvas{grid-area:g!important}#stage .card .pct{grid-area:p!important;text-align:right!important}" +
-      "#stage .card .val,#stage .card .pct,#stage .card h3{overflow:visible!important;text-overflow:clip!important}" +
-      "#stage .card>.val,#stage .card>canvas,#stage .card>.pct{opacity:0;transition:opacity 1.1s cubic-bezier(.22,.61,.36,1);transition-delay:0s}" +
-      "#stage .show .card>.val,#stage .show .card>canvas,#stage .show .card>.pct{opacity:1;transition-delay:calc(var(--i) * 120ms + 300ms)}" +
+      "#stage .card{padding:" + THEME.mobMetricPad + "px 0!important}" +
+      "#stage .card>.val,#stage .card>.pct{opacity:0;transition:opacity 1.1s cubic-bezier(.22,.61,.36,1);transition-delay:0s}" +
+      "#stage .show .card>.val,#stage .show .card>.pct{opacity:1;transition-delay:calc(var(--i) * 120ms + 300ms)}" +
     "}" +
     /* Mobile: OVERVIEW -> OV, INDEX -> IN */
     "@media(max-width:700px){#vmodes .vb{font-size:0!important}#vmodes .vb::before{font-size:12px}#vmodes .vb[data-m=ov]::before{content:'OV'}#vmodes .vb[data-m=ix]::before{content:'IN'}}" +
@@ -492,10 +505,16 @@
   }
   if (mqSmall.addEventListener) mqSmall.addEventListener("change", renameRows);
 
-  /* "Each metric": die Einheit in Klammern hinter dem Namen weglassen (steht schon beim Wert) */
+  /* "Each metric": Einheit in Klammern hinter dem Namen weglassen (steht schon beim Wert)
+     + Pfeilrichtung für die Prozentzahl setzen (↗ bei Plus, ↘ bei Minus, nichts bei 0 %) */
   function trimUnits() {
     Array.prototype.forEach.call(document.querySelectorAll("#grid .card"), function (c) {
-      var h = c.querySelector("h3"), val = c.querySelector(".val");
+      var h = c.querySelector("h3"), val = c.querySelector(".val"), pc = c.querySelector(".pct");
+      if (pc) {
+        var pt = pc.textContent.trim(), dir = /^[-\u2212\u2013]/.test(pt) ? "down" : (/[1-9]/.test(pt) ? "up" : "");
+        if (dir && pc.getAttribute("data-dir") !== dir) pc.setAttribute("data-dir", dir);
+        else if (!dir && pc.hasAttribute("data-dir")) pc.removeAttribute("data-dir");
+      }
       if (!h || !val || h.getAttribute("data-u")) return;
       var m = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(h.textContent);
       if (!m) { if (/\S/.test(val.textContent)) h.setAttribute("data-u", "1"); return; }
