@@ -72,8 +72,8 @@
     metricLine: 1.05,              /* Zeilenhöhe der Texte (kleiner = Zeilen enger) */
     tierCols: "220px auto",        /* "Decay level of the sub-pages": Breite der Namensspalte | Prozent */
     mobCodeGap: 6,                 /* Mobile, "All live measurements": px zwischen Code und Kategoriename */
-    mobNameGap: 12,                /* ... zwischen Kategoriename und T0 */
-    mobT0Gap: 12,                  /* ... zwischen T0 und Now */
+    mobNameGap: 15,                /* ... zwischen Kategoriename und T0 */
+    mobT0Gap: 15,                  /* ... zwischen T0 und Now */
     headTop: 54,                   /* px von Oberkante des Screens bis zur Überschrift (= Abstand HUD "User 1 …" -> Überschrift), überall gleich */
     headData: 15                   /* px zwischen Überschrift und Datenliste, überall gleich */
   };
