@@ -72,8 +72,8 @@
     metricLine: 1.05,              /* Zeilenhöhe der Texte (kleiner = Zeilen enger) */
     tierCols: "220px auto",        /* "Decay level of the sub-pages": Breite der Namensspalte | Prozent */
     mobCodeGap: 6,                 /* Mobile, "All live measurements": px zwischen Code und Kategoriename */
-    mobNameGap: 8,                 /* ... zwischen Kategoriename und T0 */
-    mobT0Gap: 8,                   /* ... zwischen T0 und Now */
+    mobNameGap: 12,                /* ... zwischen Kategoriename und T0 */
+    mobT0Gap: 12,                  /* ... zwischen T0 und Now */
     headTop: 54,                   /* px von Oberkante des Screens bis zur Überschrift (= Abstand HUD "User 1 …" -> Überschrift), überall gleich */
     headData: 15                   /* px zwischen Überschrift und Datenliste, überall gleich */
   };
@@ -174,8 +174,8 @@
       "#tblsec th.me,#tblsec td.me{padding-right:" + THEME.mobNameGap + "px!important}" +
       "#tblsec th.t0,#tblsec td.t0{padding-right:" + THEME.mobT0Gap + "px!important}" +
     "}" +
-    /* nur Handys unter 360px Breite: 1px kleiner, damit die Zeile noch passt */
-    "@media(max-width:359px){#tblsec th,#tblsec td{font-size:" + (THEME.textSize - 1) + "px!important}}" +
+    /* nur schmale Handys (bis 374px, z. B. 360px): 1px kleiner, damit die Zeile noch passt */
+    "@media(max-width:374px){#tblsec th,#tblsec td{font-size:" + (THEME.textSize - 1) + "px!important}}" +
     /* Mobile: OVERVIEW -> OV, INDEX -> IN */
     "@media(max-width:700px){#vmodes .vb{font-size:0!important}#vmodes .vb::before{font-size:12px}#vmodes .vb[data-m=ov]::before{content:'OV'}#vmodes .vb[data-m=ix]::before{content:'IN'}}" +
     "@media(max-width:700px){#vinfo{gap:4px}#vpan{gap:4px;margin-top:" + (THEME.headData - 4) + "px}}";
