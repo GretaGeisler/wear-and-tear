@@ -1,4 +1,4 @@
-/* viewer.js v3 – Burn-In-Archiv als erste Ansicht von stats.html.
+/* viewer.js v4 – Burn-In-Archiv als erste Ansicht von stats.html.
    Einbinden: <script src="/viewer.js"></script> vor </body>, NACH burn.js, tracker.js und dem Inline-Skript.
    Jeder Screenshot = der echte Zustand von #wear (Cursor-Burns) und #ghosts (Text-Burns). */
 (function () {
@@ -80,6 +80,7 @@
     mobCodeGap: 6,                 /* Mobile, "All live measurements": px zwischen Code und Kategoriename */
     mobNameGap: 12,                /* ... zwischen Kategoriename und T0 */
     mobT0Gap: 12,                  /* ... zwischen T0 und Now */
+    mobArcGap: 10,                 /* Mobile, "State archive": px zwischen den Spalten */
     headTop: 54,                   /* px von Oberkante des Screens bis zur Überschrift (= Abstand HUD "User 1 …" -> Überschrift), überall gleich */
     headData: 15                   /* px zwischen Überschrift und Datenliste, überall gleich */
   };
@@ -185,8 +186,12 @@
     "#stage ol.tiers li .tpct{text-align:left!important}" +
     "#stage .note{margin:14px 0 0!important;max-width:none!important;text-align:left!important}" +
     ".vcb{display:inline-block;min-width:2.4em;margin-right:.5em;white-space:pre;text-align:left}" +
+    /* OV / IN Umschalter: feste Position unten, großzügige Tippfläche; Langtext (.l) auf Desktop, Kürzel (.s) auf dem Handy */
     "#vmodes{position:fixed;left:0;right:0;width:auto;transform:none;justify-content:center;pointer-events:none;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);z-index:2100;filter:none;-webkit-backdrop-filter:none;backdrop-filter:none}" +
-    "#vmodes .vb{pointer-events:auto;filter:none!important;-webkit-font-smoothing:antialiased}" +
+    "#vmodes .vb{pointer-events:auto;filter:none!important;-webkit-font-smoothing:antialiased;touch-action:manipulation;-webkit-tap-highlight-color:transparent;padding:10px 8px;margin:-10px -8px;line-height:1}" +
+    "#vmodes .vb .s{display:none}" +
+    /* State archive: Datum + Uhrzeit */
+    "#arcsec .tt{margin-left:.4em;white-space:nowrap}#arcsec .dd{white-space:nowrap}" +
     /* Mobile: "All live measurements" immer einzeilig, ohne Abkürzen mit … (kurze Namen, enge Spalten) */
     "@media(max-width:700px){" +
       "#tblsec table{table-layout:auto!important;width:auto!important;max-width:100%!important}" +
@@ -195,8 +200,17 @@
       "#tblsec th.me,#tblsec td.me{padding-right:" + THEME.mobNameGap + "px!important}" +
       "#tblsec th.t0,#tblsec td.t0{padding-right:" + THEME.mobT0Gap + "px!important}" +
     "}" +
+    /* Mobile: "State archive" – alles einzeilig, nur Datum und Uhrzeit untereinander; übrige Spalten oben bündig auf Höhe des Datums */
+    "@media(max-width:700px){" +
+      "#stage #arcsec table{table-layout:auto!important;width:auto!important;max-width:100%!important}" +
+      "#stage #arcsec th,#stage #arcsec td{white-space:nowrap!important;vertical-align:top!important;overflow:visible!important;text-overflow:clip!important;padding:4px " + THEME.mobArcGap + "px 4px 0!important}" +
+      "#stage #arcsec th:last-child,#stage #arcsec td:last-child{padding-right:0!important}" +
+      "#stage #arcsec td.me .dd,#stage #arcsec td.me .tt{display:block!important;margin-left:0!important}" +
+    "}" +
     /* nur schmale Handys (bis 374px, z. B. 360px): 1px kleiner, damit die Zeile noch passt */
-    "@media(max-width:374px){#tblsec th,#tblsec td{font-size:" + (THEME.textSize - 1) + "px!important}}" +
+    "@media(max-width:374px){#tblsec th,#tblsec td{font-size:" + (THEME.textSize - 1) + "px!important}" +
+      "#stage #arcsec th,#stage #arcsec td{font-size:" + (THEME.textSize - 1) + "px!important;padding-right:" + Math.max(5, THEME.mobArcGap - 4) + "px!important}" +
+      "#stage #arcsec th:last-child,#stage #arcsec td:last-child{padding-right:0!important}}" +
     /* Mobile: Screens so hoch wie der größtmögliche Bildschirm (lvh). Mit svh sind sie kürzer als der sichtbare Bereich,
        sobald die Browserleiste einfährt, und der Header des nächsten Screens schaut unten hervor. */
     "@media(max-width:700px){#tblsec,.dsec{min-height:100vh!important;min-height:100lvh!important}#viewer{height:100vh!important;height:100lvh!important}}" +
@@ -206,8 +220,8 @@
       "#stage .card>.val,#stage .card>.pct{opacity:0;transition:opacity 1.1s cubic-bezier(.22,.61,.36,1);transition-delay:0s}" +
       "#stage .show .card>.val,#stage .show .card>.pct{opacity:1;transition-delay:calc(var(--i) * 120ms + 300ms)}" +
     "}" +
-    /* Mobile: OVERVIEW -> OV, INDEX -> IN */
-    "@media(max-width:700px){#vmodes .vb{font-size:0!important}#vmodes .vb::before{font-size:12px}#vmodes .vb[data-m=ov]::before{content:'OV'}#vmodes .vb[data-m=ix]::before{content:'IN'}}" +
+    /* Mobile: OVERVIEW -> OV, INDEX -> IN (echte Spans statt font-size:0-Trick, damit die Tippfläche nicht verschwindet) */
+    "@media(max-width:700px){#vmodes .vb .l{display:none}#vmodes .vb .s{display:inline}}" +
     "@media(max-width:700px){#vinfo{gap:4px}#vpan{gap:4px;margin-top:" + (THEME.headData - 4) + "px}}";
   var el = document.createElement("style");
   el.textContent = css;
@@ -225,15 +239,22 @@
   var modes = document.createElement("div");
   modes.className = "vbar";
   modes.id = "vmodes";
-  modes.innerHTML = '<button class="vb on" data-m="ov">Overview</button><button class="vb" data-m="ix">Index</button>';
+  modes.innerHTML =
+    '<button type="button" class="vb on" data-m="ov"><span class="l">Overview</span><span class="s">OV</span></button>' +
+    '<button type="button" class="vb" data-m="ix"><span class="l">Index</span><span class="s">IN</span></button>';
   document.body.appendChild(modes);
 
+  /* State archive: direkt nach den Screenshots, vor "All live measurements" */
+  var arcSec = null;
   if (wrap) {
-    var sec = document.createElement("section");
-    sec.className = "dsec";
-    sec.innerHTML =
+    arcSec = document.createElement("section");
+    arcSec.className = "dsec";
+    arcSec.id = "arcsec";
+    arcSec.innerHTML =
       '<h2>State archive</h2><p class="sub">One screenshot every 30 seconds</p><table><thead><tr><th class="no">No.</th><th class="me">Date / time</th><th>Wear</th><th>Ghosts</th><th>Energy</th><th>Stored</th><th>CO₂</th></tr></thead><tbody id="varc"></tbody></table>';
-    wrap.appendChild(sec); /* ans Ende: verschiebt keine bestehenden Burn-Schlüssel */
+    var tb = document.getElementById("tblsec");
+    if (tb && tb.parentNode) tb.parentNode.insertBefore(arcSec, tb);
+    else wrap.appendChild(arcSec);
   }
 
   /* ---------- Helfer ---------- */
@@ -370,7 +391,7 @@
   function arc() {
     var b = document.getElementById("varc"); if (!b) return;
     b.innerHTML = states.slice(0, 15).map(function (s, i) {
-      return '<tr><td class="no">' + (states.length - i) + '</td><td class="me">' + fd(s.ts) + " " + ft(s.ts) + "</td><td>" + nf(s.wear, 2) + " %</td><td>" + nf(s.gh, 0) + "</td><td>" + nf(s.wh, 3) + " Wh</td><td>" + nf(s.st, 1) + " KB</td><td>" + nf(s.co2, 3) + " g</td></tr>";
+      return '<tr><td class="no">' + (states.length - i) + '</td><td class="me"><span class="dd">' + fd(s.ts) + '</span> <span class="tt">' + ft(s.ts) + "</span></td><td>" + nf(s.wear, 2) + " %</td><td>" + nf(s.gh, 0) + "</td><td>" + nf(s.wh, 3) + " Wh</td><td>" + nf(s.st, 1) + " KB</td><td>" + nf(s.co2, 3) + " g</td></tr>";
     }).join("");
   }
 
@@ -385,17 +406,42 @@
     target = clampN(target - (dx + dy) * .006); down = [e.clientX, e.clientY]; settle();
   });
   addEventListener("pointerup", function () { down = null; settle(); setTimeout(function () { moved = false; }, 0); });
+  addEventListener("pointercancel", function () { down = null; });
   addEventListener("keydown", function (e) {
     if (!inView) return; var k = e.key;
     if (/^(Arrow|Page)/.test(k)) popped = null;
     if (k === "ArrowRight" || k === "ArrowDown" || k === "PageDown") target = clampN(Math.round(target) + 1);
     if (k === "ArrowLeft" || k === "ArrowUp" || k === "PageUp") target = clampN(Math.round(target) - 1);
   });
-  modes.onclick = function (e) {
-    var b = e.target.closest(".vb"); if (!b) return;
-    var t = b.dataset.m === "ov" ? v : document.getElementById("tblsec");
-    if (t) t.scrollIntoView({ behavior: "smooth" });
-  };
+
+  /* Scroll-Snap (mandatory) + scroll-snap-stop:always + smooth scrollIntoView hängen auf dem Handy gern fest:
+     Snap während der Fahrt abschalten, eigene Animation fahren, danach Snap wieder einschalten. */
+  var navAnim = 0;
+  function scrollToY(y) {
+    var root = document.documentElement, body = document.body, y0 = window.scrollY, t0 = performance.now(), dur = 550, id = ++navAnim;
+    root.style.scrollSnapType = "none"; body.style.scrollSnapType = "none";
+    function ease(t) { return t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+    (function stepAnim(now) {
+      if (id !== navAnim) return;
+      var p = Math.min(1, (now - t0) / dur);
+      window.scrollTo(0, y0 + (y - y0) * ease(p));
+      if (p < 1) requestAnimationFrame(stepAnim);
+      else setTimeout(function () { if (id === navAnim) { root.style.scrollSnapType = ""; body.style.scrollSnapType = ""; } }, 60);
+    })(t0);
+  }
+  function goMode(m) {
+    var t = m === "ov" ? v : (arcSec || document.getElementById("tblsec"));
+    if (!t) return;
+    popped = null; down = null;
+    scrollToY(Math.max(0, t.getBoundingClientRect().top + window.scrollY));
+  }
+  modes.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest(".vb") : null; if (!b) return;
+    e.preventDefault(); goMode(b.dataset.m);
+  });
+  /* manuelles Scrollen bricht die Animation ab */
+  ["wheel", "touchstart"].forEach(function (n) { addEventListener(n, function () { navAnim++; }, { passive: true }); });
+
   if ("IntersectionObserver" in window)
     new IntersectionObserver(function (en) {
       inView = en[0].isIntersecting;

@@ -282,6 +282,8 @@
     var s = load();
     if (!s) return;
     var m = derive(s);
+    // same wear value as burn.js (site-wide, incl. other visitors), so the graph is really measured
+    if (window.WT_BURN) m.wear = WT_BURN.wear();
     var row = [
       Date.now(),
       s.clicks,

@@ -704,6 +704,8 @@
           if (!s) return;
           var m = W.derive(s),
             now = Date.now();
+          // real, site-wide wear value (same as the corner info), not the local estimate
+          if (window.WT_BURN) m.wear = WT_BURN.wear();
           document.getElementById("sub").textContent =
             "Baseline t0: " +
             z(new Date(s.t0).getDate()) +
