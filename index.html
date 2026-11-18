@@ -620,5 +620,30 @@
 })();
 </script>
 
+
+<style id="hud-clock-visible">
+  /* Intro: Uhr von Anfang an sichtbar, Koordinaten erst am Ende (wie bisher) */
+  body.hud-intro #hud-r {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+    transition: none !important;
+  }
+  body.hud-intro #hud-clock {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transition: none !important;
+  }
+  body.hud-intro:not(.hud-r-on) #hud-xy {
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+  body.hud-intro.hud-r-on #hud-xy {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+</style>
+
+
 </body>
 </html>
