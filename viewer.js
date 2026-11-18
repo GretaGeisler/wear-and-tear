@@ -12,8 +12,8 @@
   /* ---------- LOOK DER FRAMES: hier anpassen ---------- */
   var FRAME = {
     /* Fläche (sichtbar, wo der Screenshot transparent ist) */
-    backgroundColor: "47,39,35",   /* r,g,b */
-    backgroundOpacity: 0.04,
+    backgroundColor: "87,79,85",   /* r,g,b */
+    backgroundOpacity: 0.03,
 
     /* Rahmen */
     borderColor: "47,39,35",       /* r,g,b */

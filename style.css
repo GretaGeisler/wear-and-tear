@@ -950,3 +950,8 @@ body.bare .sub-base.on {
 .hud, #tog, .back, #hud-l, #hud-r {
   filter: none !important;
 }
+
+  /* sub-pages: smaller picture on mobile (3:2 frame stays intact, --h follows --w) */
+  .sub-img {
+    --w: min(700px, 76vw, 141svh);
+  }
