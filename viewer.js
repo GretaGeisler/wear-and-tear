@@ -71,6 +71,9 @@
     metricGraphH: 16,              /* px Höhe der kleinen Kurven */
     metricLine: 1.05,              /* Zeilenhöhe der Texte (kleiner = Zeilen enger) */
     tierCols: "220px auto",        /* "Decay level of the sub-pages": Breite der Namensspalte | Prozent */
+    mobCodeGap: 8,                 /* Mobile, "All live measurements": px zwischen Code und Kategoriename */
+    mobNameGap: 10,                /* ... zwischen Kategoriename und T0 */
+    mobT0Gap: 12,                  /* ... zwischen T0 und Now */
     headTop: 54,                   /* px von Oberkante des Screens bis zur Überschrift (= Abstand HUD "User 1 …" -> Überschrift), überall gleich */
     headData: 15                   /* px zwischen Überschrift und Datenliste, überall gleich */
   };
@@ -163,6 +166,16 @@
     ".vcb{display:inline-block;min-width:2.4em;margin-right:.5em;white-space:pre;text-align:left}" +
     "#vmodes{position:fixed;left:0;right:0;width:auto;transform:none;justify-content:center;pointer-events:none;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);z-index:2100;filter:none;-webkit-backdrop-filter:none;backdrop-filter:none}" +
     "#vmodes .vb{pointer-events:auto;filter:none!important;-webkit-font-smoothing:antialiased}" +
+    /* Mobile: "All live measurements" immer einzeilig, ohne Abkürzen mit … (kurze Namen, enge Spalten) */
+    "@media(max-width:700px){" +
+      "#tblsec table{table-layout:auto!important;width:auto!important;max-width:100%!important}" +
+      "#tblsec th,#tblsec td{white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;padding:4px 0!important;font-size:clamp(8px,2.4vw,11px)!important}" +
+      "#tblsec th.no,#tblsec td.no{padding-right:" + THEME.mobCodeGap + "px!important}" +
+      "#tblsec th.me,#tblsec td.me{padding-right:" + THEME.mobNameGap + "px!important}" +
+      "#tblsec th.t0,#tblsec td.t0{padding-right:" + THEME.mobT0Gap + "px!important}" +
+    "}" +
+    /* Mobile: OVERVIEW -> OV, INDEX -> IN */
+    "@media(max-width:700px){#vmodes .vb{font-size:0!important}#vmodes .vb::before{font-size:12px}#vmodes .vb[data-m=ov]::before{content:'OV'}#vmodes .vb[data-m=ix]::before{content:'IN'}}" +
     "@media(max-width:700px){#vinfo{gap:4px}#vpan{gap:4px;margin-top:" + (THEME.headData - 4) + "px}}";
   var el = document.createElement("style");
   el.textContent = css;
@@ -448,7 +461,22 @@
     });
   }
 
+  /* kürzere Namen in "All live measurements", damit alles auf dem Handy in eine Zeile passt */
+  var RENAME = { "Decay level of the sub-pages": "Sub-pages decay", "Ghost copies (all pages)": "Ghost copies" };
+  var mqSmall = window.matchMedia ? window.matchMedia("(max-width:700px)") : { matches: false };
+  function renameRows() {
+    Array.prototype.forEach.call(document.querySelectorAll("#tbl td.me"), function (td) {
+      var o = td.getAttribute("data-orig") || td.textContent.trim();
+      if (!RENAME[o]) return;
+      td.setAttribute("data-orig", o);
+      var t = mqSmall.matches ? RENAME[o] : o;
+      if (td.textContent !== t) td.textContent = t;
+    });
+  }
+  if (mqSmall.addEventListener) mqSmall.addEventListener("change", renameRows);
+
   function decorate() {
+    renameRows();
     var root = graphRoot() || stage;
     if (GRAPH.checkboxes) {
       var btns = stage.querySelectorAll(".legend button");
