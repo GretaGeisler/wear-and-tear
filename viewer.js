@@ -71,7 +71,8 @@
     metricGraphH: 16,              /* px Höhe der kleinen Kurven */
     metricLine: 1.05,              /* Zeilenhöhe der Texte (kleiner = Zeilen enger) */
     tierCols: "220px auto",        /* "Decay level of the sub-pages": Breite der Namensspalte | Prozent */
-    headGap: 2                     /* Leerzeilen über jeder Überschrift (z. B. "All live measurements"), 0 = keine */
+    headTop: 54,                   /* px von Oberkante des Screens bis zur Überschrift (= Abstand HUD "User 1 …" -> Überschrift), überall gleich */
+    headData: 15                   /* px zwischen Überschrift und Datenliste, überall gleich */
   };
 
   var stage = document.getElementById("stage"),
@@ -97,7 +98,9 @@
     "#tblsec:not(.dsec),.dsec,#list{filter:url(#xerox-s);opacity:var(--title-opacity)}" +
     "#tblsec .dsec,#tblsec #list{filter:none;opacity:1}" +
     "#stage table{margin:0!important;border-collapse:collapse!important}" +
-    "#stage>:not(#viewer) h1,#stage>:not(#viewer) h2,#tblsec h2,.dsec h2{margin-top:" + (THEME.headGap * THEME.textSize * 1.25).toFixed(1) + "px!important;margin-bottom:0!important}" +
+    "#stage>:not(#viewer) h1,#stage>:not(#viewer) h2,#tblsec h2,.dsec h2{margin-top:" + THEME.headTop + "px!important;margin-bottom:" + THEME.headData + "px!important}" +
+    "#tblsec,.dsec{padding-top:0!important}" +
+    "#stage thead th{padding-top:0!important}#stage ol.tiers li:first-child{padding-top:0!important}" +
     "#tblsec,.dsec,#list{justify-content:flex-start!important;align-items:flex-start!important}" +
     "#list ul{margin:0!important;max-width:none!important}" +
     "#stage th,#stage td{padding:4px 24px 4px 0!important}" +
@@ -134,8 +137,8 @@
     ".vbar{position:absolute;display:flex;gap:20px;z-index:4;font:300 12px/1 var(--mono);letter-spacing:var(--mono-spacing);text-transform:uppercase;color:var(--fg-small)}" +
     ".vp,.vb{background:none;border:0;border-radius:0;padding:0;margin:0;color:inherit;font:inherit;letter-spacing:inherit;text-transform:uppercase;white-space:nowrap;filter:blur(.2px)}" +
     ".vp b{font-weight:300}.vb{cursor:pointer;opacity:.55}.vb.on{opacity:1}" +
-    "#vinfo{left:14px;top:30px;flex-direction:column;align-items:flex-start;gap:6px}" +
-    "#vpan{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:12px}" +
+    "#vinfo{left:14px;top:" + THEME.headTop + "px;flex-direction:column;align-items:flex-start;gap:6px}" +
+    "#vpan{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:" + (THEME.headData - 6) + "px}" +
     "#stage .legend{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:" + THEME.legendGap + "px!important;margin:0!important;width:100%;text-align:left!important}" +
     "#stage .legend button .dot{display:none!important}" +
     "#stage h2{display:block!important;padding-bottom:0!important}" +
@@ -158,8 +161,9 @@
     "#stage ol.tiers li .tpct{text-align:left!important}" +
     "#stage .note{margin:14px 0 0!important;max-width:none!important;text-align:left!important}" +
     ".vcb{display:inline-block;min-width:2.4em;margin-right:.5em;white-space:pre;text-align:left}" +
-    "#vmodes{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 10px);z-index:20}" +
-    "@media(max-width:700px){#vinfo{gap:4px}#vpan{gap:4px}}";
+    "#vmodes{position:fixed;left:0;right:0;width:auto;transform:none;justify-content:center;pointer-events:none;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);z-index:2100;filter:none;-webkit-backdrop-filter:none;backdrop-filter:none}" +
+    "#vmodes .vb{pointer-events:auto;filter:none!important;-webkit-font-smoothing:antialiased}" +
+    "@media(max-width:700px){#vinfo{gap:4px}#vpan{gap:4px;margin-top:" + (THEME.headData - 4) + "px}}";
   var el = document.createElement("style");
   el.textContent = css;
   document.head.appendChild(el);
@@ -481,14 +485,14 @@
         cx._vs = 1;
       }
     }
-    /* "Baseline t0: …" und "all values count from here." durch einen Absatz trennen */
+    /* "Baseline t0: …" und "all values count from here." in zwei Zeilen (ohne Leerzeile dazwischen) */
     var sub = document.getElementById("sub");
     if (sub && GRAPH.arrange) {
       var d = Object.getOwnPropertyDescriptor(Node.prototype, "textContent");
       Object.defineProperty(sub, "textContent", {
         configurable: true,
         get: function () { return d.get.call(this); },
-        set: function (t) { d.set.call(this, String(t).replace(/\u2003+/g, "\n\n")); }
+        set: function (t) { d.set.call(this, String(t).replace(/\u2003+/g, "\n")); }
       });
       sub.textContent = d.get.call(sub);
     }

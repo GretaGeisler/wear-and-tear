@@ -883,26 +883,29 @@ body.bare .sub-base.on {
 /* =========================================
    MOBILE HUD – same on every page
    ========================================= */
+/* =========================================
+   MOBILE HUD – same on every page
+   ========================================= */
 
 @media (max-width: 700px) {
 
   body #hud-l {
-    left: 12px;
-    gap: 10px;
-    font-size: 10px;
-    letter-spacing: 0.04em;
+    left: 14px;                 /* wie ESC und SHOW TRACES */
+    gap: 8px;
+    font-size: 12px;
+    letter-spacing: var(--mono-spacing);
   }
 
   body #hud-l .hud-group {
     gap: 4px;
-    font-size: 10px;
+    font-size: 12px;
   }
 
   body #hud-r {
-    right: 12px;
+    right: 14px;
     gap: 0;
-    font-size: 10px;
-    letter-spacing: 0.04em;
+    font-size: 12px;
+    letter-spacing: var(--mono-spacing);
   }
 
   /* no X / Y on mobile, only the clock */
@@ -916,7 +919,7 @@ body.bare .sub-base.on {
   }
 
   body #hud-l .hud-group > span:first-child::before {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   body #hud-l .hud-group:nth-child(1) > span:first-child::before { content: "UN"; }
@@ -924,4 +927,15 @@ body.bare .sub-base.on {
   body #hud-l .hud-group:nth-child(3) > span:first-child::before { content: "WP"; }
   body #hud-l .hud-group:nth-child(4) > span:first-child::before { content: "PU"; }
   body #hud-l .hud-group:nth-child(5) > span:first-child::before { content: "CO"; }
+}
+
+/* very narrow phones: keep everything on one line */
+@media (max-width: 380px) {
+  body #hud-l {
+    gap: 6px;
+    letter-spacing: 0.02em;
+  }
+  body #hud-r {
+    letter-spacing: 0.02em;
+  }
 }
