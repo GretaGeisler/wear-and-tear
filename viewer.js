@@ -69,7 +69,9 @@
     metricColGap: 12,              /* px zwischen den Spalten */
     metricRowPad: 0,               /* px oben/unten pro Zeile */
     metricGraphH: 16,              /* px Höhe der kleinen Kurven (nicht mehr genutzt, Kurven sind ausgeblendet) */
-    metricPctGap: 24,              /* px Abstand zwischen Wert (61) und Prozent (+1,999.3% ↗) */
+    metricValW: 120,               /* px feste Breite der Wert-Spalte: alle Prozentzahlen beginnen dadurch an derselben vertikalen Linie (muss breiter sein als der längste Wert) */
+    metricPctGap: 40,              /* px zusätzlicher Abstand zwischen Wert-Spalte und Prozent (+1,999.3% ↗) */
+    arrowFont: "font-family:'DejaVu Sans','Segoe UI Symbol','Arial Unicode MS','Noto Sans Symbols2','Noto Sans Symbols',Arial,sans-serif!important;font-style:normal!important;font-weight:400!important;font-variant-emoji:text!important;", /* Schrift der Pfeile U+2197 / U+2198 (Textglyph statt Emoji) */
     metricLine: 1.05,              /* Zeilenhöhe der Texte (kleiner = Zeilen enger) */
     tierCols: "220px auto",        /* "Decay level of the sub-pages": Breite der Namensspalte | Prozent */
     mobMetricVal: 100,             /* (nicht mehr genutzt) */
@@ -163,14 +165,14 @@
     /* "Each metric": keine Graphen. Zeile 1: Name. Zeile 2: Wert + Abstand + Prozent mit Pfeil. Gilt für Desktop und Handy. */
     "#stage .card canvas{display:none!important}" +
     "#stage .grid{width:max-content!important;max-width:100%!important}" +
-    "#stage .card{display:grid!important;grid-template-columns:auto auto!important;grid-template-areas:'n n' 'v p'!important;justify-content:start!important;column-gap:" + THEME.metricPctGap + "px!important;row-gap:0!important;align-items:baseline!important}" +
+    "#stage .card{display:grid!important;grid-template-columns:" + THEME.metricValW + "px auto!important;grid-template-areas:'n n' 'v p'!important;justify-content:start!important;column-gap:" + THEME.metricPctGap + "px!important;row-gap:0!important;align-items:baseline!important}" +
     "#stage .card h3{grid-area:n!important}#stage .card .val{grid-area:v!important}#stage .card .pct{grid-area:p!important;text-align:left!important}" +
-    "#stage>:not(#viewer) .card .pct[data-dir='up']::after{content:' \\2197'!important;display:inline!important}" +
-    "#stage>:not(#viewer) .card .pct[data-dir='down']::after{content:' \\2198'!important;display:inline!important}" +
+    "#stage>:not(#viewer) .card .pct[data-dir='up']::after{content:' \\2197\\FE0E'!important;display:inline!important;" + THEME.arrowFont + "}" +
+    "#stage>:not(#viewer) .card .pct[data-dir='down']::after{content:' \\2198\\FE0E'!important;display:inline!important;" + THEME.arrowFont + "}" +
     /* Desktop: dasselbe Layout nochmal mit höherer Spezifität, damit keine Seiten-CSS (z. B. 4 Spalten) es überstimmt */
     "@media(min-width:701px){" +
       "#stage #grid.grid,#stage #grid,#stage .grid{display:block!important;width:max-content!important;max-width:100%!important;grid-template-columns:none!important}" +
-      "#stage #grid .card,#stage .grid .card{display:grid!important;grid-template-columns:auto auto!important;grid-template-rows:auto auto!important;grid-template-areas:'n n' 'v p'!important;justify-content:start!important;column-gap:" + THEME.metricPctGap + "px!important;row-gap:0!important;align-items:baseline!important;width:auto!important;padding:" + THEME.mobMetricPad + "px 0!important}" +
+      "#stage #grid .card,#stage .grid .card{display:grid!important;grid-template-columns:" + THEME.metricValW + "px auto!important;grid-template-rows:auto auto!important;grid-template-areas:'n n' 'v p'!important;justify-content:start!important;column-gap:" + THEME.metricPctGap + "px!important;row-gap:0!important;align-items:baseline!important;width:auto!important;padding:" + THEME.mobMetricPad + "px 0!important}" +
       "#stage #grid .card canvas,#stage .grid .card canvas{display:none!important}" +
       "#stage #grid .card h3,#stage .grid .card h3{grid-area:n!important}" +
       "#stage #grid .card .val,#stage .grid .card .val{grid-area:v!important;text-align:left!important}" +
