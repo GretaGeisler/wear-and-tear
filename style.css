@@ -114,27 +114,6 @@ h1,
    BACKGROUND AND EFFECT LAYERS
    ========================================= */
 
-#bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-color: var(--bg);
-  isolation: isolate;
-  overflow: hidden;
-}
-
-#tex {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  mix-blend-mode: var(--tex-blend);
-  opacity: var(--tex-opacity);
-  filter: var(--tex-filter);
-}
 
 /* burn layer */
 
