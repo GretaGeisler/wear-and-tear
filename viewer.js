@@ -72,8 +72,8 @@
     metricLine: 1.05,              /* Zeilenhöhe der Texte (kleiner = Zeilen enger) */
     tierCols: "220px auto",        /* "Decay level of the sub-pages": Breite der Namensspalte | Prozent */
     mobCodeGap: 6,                 /* Mobile, "All live measurements": px zwischen Code und Kategoriename */
-    mobNameGap: 15,                /* ... zwischen Kategoriename und T0 */
-    mobT0Gap: 15,                  /* ... zwischen T0 und Now */
+    mobNameGap: 12,                /* ... zwischen Kategoriename und T0 */
+    mobT0Gap: 12,                  /* ... zwischen T0 und Now */
     headTop: 54,                   /* px von Oberkante des Screens bis zur Überschrift (= Abstand HUD "User 1 …" -> Überschrift), überall gleich */
     headData: 15                   /* px zwischen Überschrift und Datenliste, überall gleich */
   };
@@ -138,7 +138,8 @@
     ".vf img{display:block;width:100%;height:100%;-webkit-user-drag:none;pointer-events:none}" +
     ".vt{position:absolute;left:8px;bottom:6px;font:300 10px var(--mono);letter-spacing:var(--mono-spacing);color:var(--fg-small);opacity:.6}" +
     ".vbar{position:absolute;display:flex;gap:20px;z-index:4;font:300 12px/1 var(--mono);letter-spacing:var(--mono-spacing);text-transform:uppercase;color:var(--fg-small)}" +
-    ".vp,.vb{background:none;border:0;border-radius:0;padding:0;margin:0;color:inherit;font:inherit;letter-spacing:inherit;text-transform:uppercase;white-space:nowrap;filter:blur(.2px)}" +
+    ".vp,.vb{background:none;border:0;border-radius:0;padding:0;margin:0;color:inherit;font:inherit;letter-spacing:inherit;text-transform:uppercase;white-space:nowrap;filter:none}" +
+    "#vinfo,#vinfo *{filter:none!important;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}" +
     ".vp b{font-weight:300}.vb{cursor:pointer;opacity:.55}.vb.on{opacity:1}" +
     "#vinfo{left:14px;top:" + THEME.headTop + "px;flex-direction:column;align-items:flex-start;gap:6px}" +
     "#vpan{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:" + (THEME.headData - 6) + "px}" +
@@ -176,6 +177,9 @@
     "}" +
     /* nur schmale Handys (bis 374px, z. B. 360px): 1px kleiner, damit die Zeile noch passt */
     "@media(max-width:374px){#tblsec th,#tblsec td{font-size:" + (THEME.textSize - 1) + "px!important}}" +
+    /* Mobile: Screens so hoch wie der größtmögliche Bildschirm (lvh). Mit svh sind sie kürzer als der sichtbare Bereich,
+       sobald die Browserleiste einfährt, und der Header des nächsten Screens schaut unten hervor. */
+    "@media(max-width:700px){#tblsec,.dsec{min-height:100vh!important;min-height:100lvh!important}#viewer{height:100vh!important;height:100lvh!important}}" +
     /* Mobile: OVERVIEW -> OV, INDEX -> IN */
     "@media(max-width:700px){#vmodes .vb{font-size:0!important}#vmodes .vb::before{font-size:12px}#vmodes .vb[data-m=ov]::before{content:'OV'}#vmodes .vb[data-m=ix]::before{content:'IN'}}" +
     "@media(max-width:700px){#vinfo{gap:4px}#vpan{gap:4px;margin-top:" + (THEME.headData - 4) + "px}}";

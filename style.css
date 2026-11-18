@@ -939,3 +939,16 @@ body.bare .sub-base.on {
     letter-spacing: 0.02em;
   }
 }
+/* MOBILE: full-height screens (lvh), so the next screen never peeks in */
+@media (max-width: 700px) {
+  .hero-index,
+  .textsec,
+  #list {
+    min-height: 100vh !important;
+    min-height: 100lvh !important;
+  }
+}
+
+.hud, #tog, .back, #hud-l, #hud-r {
+  filter: none !important;
+}
