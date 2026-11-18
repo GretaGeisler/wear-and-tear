@@ -591,8 +591,34 @@
   })();
 </script>
 
+<script>
+(function () {
+  var tog = document.getElementById("tog");
+  if (!tog) return;
 
-  <div id="texture-overlay"></div>
+  function apply() {
+    var cs = getComputedStyle(tog);
+    var rule =
+      "body #hud-l, body #hud-r, body #hud-xy, body #hud-l *, body #hud-r *, " +
+      "body #hud-l .hud-group > span:first-child::before {" +
+      "font-family:" + cs.fontFamily + "!important;" +
+      "font-size:" + cs.fontSize + "!important;" +
+      "font-weight:" + cs.fontWeight + "!important;" +
+      "letter-spacing:" + cs.letterSpacing + "!important;" +
+      "line-height:1!important;" +
+      "text-transform:" + cs.textTransform + "!important}" +
+      /* Mobile: das ausgeblendete Langlabel (font-size:0) soll weiter ausgeblendet bleiben */
+      "@media(max-width:700px){body #hud-l .hud-group > span:first-child{font-size:0!important}}";
+    var st = document.getElementById("hud-match");
+    if (!st) { st = document.createElement("style"); st.id = "hud-match"; document.head.appendChild(st); }
+    st.textContent = rule;
+  }
+
+  apply();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(apply);
+  addEventListener("resize", apply);
+})();
+</script>
 
 </body>
 </html>
