@@ -71,6 +71,9 @@
     metricGraphH: 16,              /* px Höhe der kleinen Kurven */
     metricLine: 1.05,              /* Zeilenhöhe der Texte (kleiner = Zeilen enger) */
     tierCols: "220px auto",        /* "Decay level of the sub-pages": Breite der Namensspalte | Prozent */
+    mobMetricVal: 100,             /* Mobile, "Each metric": px Breite der Wert-Spalte (Zeile 2, links) */
+    mobMetricPct: 60,              /* ... der Prozent-Spalte (Zeile 2, rechts) */
+    mobMetricPad: 6,               /* ... px Abstand oberhalb/unterhalb jedes Eintrags */
     mobCodeGap: 6,                 /* Mobile, "All live measurements": px zwischen Code und Kategoriename */
     mobNameGap: 12,                /* ... zwischen Kategoriename und T0 */
     mobT0Gap: 12,                  /* ... zwischen T0 und Now */
@@ -180,6 +183,14 @@
     /* Mobile: Screens so hoch wie der größtmögliche Bildschirm (lvh). Mit svh sind sie kürzer als der sichtbare Bereich,
        sobald die Browserleiste einfährt, und der Header des nächsten Screens schaut unten hervor. */
     "@media(max-width:700px){#tblsec,.dsec{min-height:100vh!important;min-height:100lvh!important}#viewer{height:100vh!important;height:100lvh!important}}" +
+    /* Mobile: "Each metric" zweizeilig. Zeile 1: Name. Zeile 2: Wert | Kurve | Änderung. Zeile 2 baut sich kurz nach Zeile 1 auf. */
+    "@media(max-width:700px){" +
+      "#stage .card{display:grid!important;grid-template-columns:" + THEME.mobMetricVal + "px minmax(0,1fr) " + THEME.mobMetricPct + "px!important;grid-template-areas:'n n n' 'v g p'!important;column-gap:12px!important;row-gap:3px!important;padding:" + THEME.mobMetricPad + "px 0!important;align-items:center!important}" +
+      "#stage .card h3{grid-area:n!important}#stage .card .val{grid-area:v!important}#stage .card canvas{grid-area:g!important}#stage .card .pct{grid-area:p!important;text-align:right!important}" +
+      "#stage .card .val,#stage .card .pct,#stage .card h3{overflow:visible!important;text-overflow:clip!important}" +
+      "#stage .card>.val,#stage .card>canvas,#stage .card>.pct{opacity:0;transition:opacity 1.1s cubic-bezier(.22,.61,.36,1);transition-delay:0s}" +
+      "#stage .show .card>.val,#stage .show .card>canvas,#stage .show .card>.pct{opacity:1;transition-delay:calc(var(--i) * 120ms + 300ms)}" +
+    "}" +
     /* Mobile: OVERVIEW -> OV, INDEX -> IN */
     "@media(max-width:700px){#vmodes .vb{font-size:0!important}#vmodes .vb::before{font-size:12px}#vmodes .vb[data-m=ov]::before{content:'OV'}#vmodes .vb[data-m=ix]::before{content:'IN'}}" +
     "@media(max-width:700px){#vinfo{gap:4px}#vpan{gap:4px;margin-top:" + (THEME.headData - 4) + "px}}";
