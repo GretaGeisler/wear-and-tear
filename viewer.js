@@ -492,8 +492,20 @@
   }
   if (mqSmall.addEventListener) mqSmall.addEventListener("change", renameRows);
 
+  /* "Each metric": die Einheit in Klammern hinter dem Namen weglassen (steht schon beim Wert) */
+  function trimUnits() {
+    Array.prototype.forEach.call(document.querySelectorAll("#grid .card"), function (c) {
+      var h = c.querySelector("h3"), val = c.querySelector(".val");
+      if (!h || !val || h.getAttribute("data-u")) return;
+      var m = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(h.textContent);
+      if (!m) { if (/\S/.test(val.textContent)) h.setAttribute("data-u", "1"); return; }
+      if (val.textContent.replace(/\s+$/, "").slice(-m[2].length) === m[2]) { h.textContent = m[1]; h.setAttribute("data-u", "1"); }
+    });
+  }
+
   function decorate() {
     renameRows();
+    trimUnits();
     var root = graphRoot() || stage;
     if (GRAPH.checkboxes) {
       var btns = stage.querySelectorAll(".legend button");
