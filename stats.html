@@ -10,8 +10,6 @@
     <meta name="color-scheme" content="only light" />
     <link rel="stylesheet" href="/style.css" />
     <style>
-
-
       /* ================= PAGE ================= */
       #stage {
         --tw: min(100%, 1000px); /* shared width of table and metrics */
@@ -21,7 +19,6 @@
         font-weight: 400; /* regular everywhere */
         counter-reset: sec; /* chapter numbers run through the whole page */
       }
-     
 
       /* corner info top left: only the first row (the first two cells) */
       #hud-l > :nth-child(n + 3) {
@@ -72,9 +69,8 @@
         font-size: 12px;
         line-height: 1;
         text-align: center;
-        font-weight:normal;
+        font-weight: normal;
       }
-  
 
       .sub {
         margin: 0 0 16px;
@@ -273,7 +269,6 @@
     </style>
   </head>
   <body>
-
     <a class="back" href="/">ESC</a>
 
     <div id="stage">
@@ -430,7 +425,7 @@
           var padL = o.small ? 2 : 12,
             padR = o.small ? 4 : 12,
             padT = o.small ? 6 : 12,
-            padB = o.small ? 5 : 20;
+            padB = o.small ? 5 : 40;
           var tmin = Infinity,
             tmax = -Infinity;
           lines.forEach(function (l) {
@@ -666,12 +661,27 @@
             ["Mouse distance", "0 px", num(s.dist, 0) + " px"],
             ["Cursor speed (peak)", "0 px/s", num(s.maxSpeed, 0) + " px/s"],
             ["Scroll distance", "0 px", num(s.scroll, 0) + " px"],
-            ["Key presses", "0", num(Math.max(s.keys || 0, window.WT_BURN ? WT_BURN.keys() : 0), 0)],
-            ["Wear", "0 %", num(window.WT_BURN ? WT_BURN.wear() : m.wear, 2) + " %"],
+            [
+              "Key presses",
+              "0",
+              num(
+                Math.max(s.keys || 0, window.WT_BURN ? WT_BURN.keys() : 0),
+                0,
+              ),
+            ],
+            [
+              "Wear",
+              "0 %",
+              num(window.WT_BURN ? WT_BURN.wear() : m.wear, 2) + " %",
+            ],
             ["Data transferred", "0 KB", num(m.kb, 1) + " KB"],
             ["Est. energy", "0 Wh", num(m.wh, 3) + " Wh"],
             ["Est. CO₂", "0 g", num(m.co2, 3) + " g"],
-            ["Ghost copies (all pages)", "0", num(window.WT_BURN ? WT_BURN.ghosts() : s.ghosts, 0)],
+            [
+              "Ghost copies (all pages)",
+              "0",
+              num(window.WT_BURN ? WT_BURN.ghosts() : s.ghosts, 0),
+            ],
             ["Stored data size", "0 KB", num(m.stored, 1) + " KB"],
             [
               "Load time (last page)",
@@ -796,7 +806,8 @@
                   if (typeof v !== "number") v = m[col[0]];
                   if (window.WT_BURN && col[0] === "keys")
                     v = Math.max(v || 0, WT_BURN.keys());
-                  if (window.WT_BURN && col[0] === "ghosts") v = WT_BURN.ghosts();
+                  if (window.WT_BURN && col[0] === "ghosts")
+                    v = WT_BURN.ghosts();
                   liveRow.push(typeof v === "number" ? v : lastRow[i + 1]);
                 });
                 rows2 = rows2.concat([liveRow]);
@@ -823,7 +834,8 @@
                   break;
                 }
               var ch = base ? ((last - base) / base) * 100 : 0;
-              cards[i].pct.textContent = (ch > 0 ? "+" : "") + num(ch, 1) + " %";
+              cards[i].pct.textContent =
+                (ch > 0 ? "+" : "") + num(ch, 1) + " %";
 
               cards[i].cv._redraw = function () {
                 draw(cards[i].cv, [{ pts: pts, color: COLOR, id: 0 }], {
