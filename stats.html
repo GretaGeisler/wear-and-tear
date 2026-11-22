@@ -11,12 +11,6 @@
     <link rel="stylesheet" href="/style.css" />
     <style>
 
-     :root {
-    --bg: #000000;
-    --fg: #ffffff;
-    --fg-small: #ffffff;
-  }
-
 
       /* ================= PAGE ================= */
       #stage {
@@ -27,12 +21,7 @@
         font-weight: 400; /* regular everywhere */
         counter-reset: sec; /* chapter numbers run through the whole page */
       }
-      h1,
-      h2,
-      h3,
-      th {
-        font-weight: 400; /* browsers make these bold by default */
-      }
+     
 
       /* corner info top left: only the first row (the first two cells) */
       #hud-l > :nth-child(n + 3) {
@@ -66,10 +55,9 @@
         justify-content: center;
         padding: 24px 0;
         font-family: "Times New Roman", Times, serif;
-        font-size: 16px;
+        font-size: 12px;
         line-height: 1.25;
         text-transform: uppercase;
-        filter: blur(0.4px);
       }
 
       /* chapter heading: 48px, roman numeral left, 01/02/... right, rule below */
@@ -81,19 +69,12 @@
         align-items: start;
         margin: 0 0 20px;
         padding-bottom: 14px;
-        border-bottom: 1px solid var(--fg);
-        font-size: 48px;
+        font-size: 12px;
         line-height: 1;
         text-align: center;
+        font-weight:normal;
       }
-      h2::before {
-        content: counter(sec, upper-roman);
-        text-align: left;
-      }
-      h2::after {
-        content: counter(sec, decimal-leading-zero);
-        text-align: right;
-      }
+  
 
       .sub {
         margin: 0 0 16px;
@@ -215,58 +196,6 @@
         display: block;
         width: 100%;
         height: 420px;
-      }
-
-      /* ================= 03 · EACH METRIC ================= */
-      /* one line: name | value | graph | change in % */
-      .grid {
-        width: min(100%, 1400px); /* wider box */
-        max-width: 100%;
-        margin: 0 auto;
-        counter-reset: c;
-      }
-      .card {
-        display: grid;
-        grid-template-columns:
-          minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 3fr)
-          minmax(0, 0.7fr);
-        column-gap: 24px;
-        align-items: center;
-        padding: 3px 0;
-      }
-
-      .card h3,
-      .card .val {
-        margin: 0;
-        font-size: inherit;
-        line-height: inherit;
-        text-align: left;
-      }
-      .card .pct {
-        margin: 0;
-        text-align: right;
-        font-variant-numeric: tabular-nums;
-      }
-      .card h3,
-      .card .val,
-      .card .pct {
-        white-space: nowrap; /* always one line */
-      }
-      .card canvas {
-        display: block;
-        width: 100%;
-        height: 22px;
-      }
-
-      /* text lines: softer, slower, one after another */
-      .card.rv {
-        transform: translateY(6px);
-        transition:
-          opacity 1.3s cubic-bezier(0.22, 0.61, 0.36, 1),
-          transform 1.3s cubic-bezier(0.22, 0.61, 0.36, 1);
-      }
-      .show .card.rv {
-        transition-delay: calc(var(--i) * 120ms); /* speed of the row build-up */
       }
 
       /* ================= 04 · DECAY LEVELS ================= */

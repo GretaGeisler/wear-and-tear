@@ -8,13 +8,14 @@
 // - Traces of ALL visitors are shared through the small server (server.js, /api/visits),
 //   or through the Claude artifact database when hosted as an artifact.
 //   Without either, only your own traces are shown ("offline").
+// - A click on the corner info (header row) is handled by overlay.js (include it on every page).
 (function () {
   "use strict";
 
   var S = 6; // cell size in px
   var HALO = 10; // soft glow around a cursor burn
-  var GHOST_K = 0.2; // how strongly a text ghost shows (opacity = wear * this): big type
-  var GHOST_K_SMALL = 0.3; // ... and small type (under 28 px), lower = fainter
+  var GHOST_K = 0.4; // how strongly a text ghost shows (opacity = wear * this): big type
+  var GHOST_K_SMALL = 0.4; // ... and small type (under 28 px), lower = fainter
   var HALO_ALPHA = 0.3; // strongest the glow can get (lower = less "highlighted box" look)
   var PUSH_MS = 1000; // how often your traces are sent to the server
   var PULL_MS = 1000; // how often the traces of the others are fetched (= how "live" it is)
@@ -23,13 +24,12 @@
   var STILL_BURN_MS = 8000; // resting this long on one spot burns it in at once ...
   var STILL_BURN = 6; // ... with the weight of this many clicks
   var IMG_STILL_MS = 2000; // the PICTURE of a sub-page starts to burn in after this much total stillness
-  var IMG_AT = 25; // seconds of stillness (beyond the first 10) until the picture is ~90 % burnt in (higher = slower)
+  var IMG_AT = 35; // seconds of stillness (beyond the first 10) until the picture is ~90 % burnt in (higher = slower)
   var BURN_AT = 40; // speed of the burn-IN (ghosts, cursor trails): higher = slower
   var WEAR_AT = 1000; // speed of the WEAR % counter only: higher = slower
   var DRAG_W = 0.08; // touch: weight of one drag sample (every 80 ms) in clicks
   var CLICK_W = 1,
     HOVER_W = 0.15; // a click = 1 unit, 1 s of resting = 0.15 units
-  var STATS = "/stats.html"; // click on the corner info goes here
   // elements that can burn in: headings, paragraphs, quotes, list links, .text, or anything with data-burn
   var SEL =
     window.WT_SEL ||
@@ -802,13 +802,17 @@
   var hudXY = document.getElementById("hud-xy");
   var hudClock = document.getElementById("hud-clock");
 
-  // click on the corner info -> stats page
-  if (location.pathname !== STATS)
-    Array.prototype.forEach.call(document.querySelectorAll(".hud"), function (h) {
-      h.addEventListener("click", function () {
-        location.href = STATS;
-      });
-    });
+  // The click on the corner info (header row) is handled by overlay.js (it opens the overlay,
+  // which links to the stats page). Nothing navigates from here. If a page forgot the
+  // <script src="/overlay.js"> tag, it is loaded here, so the overlay works on every page.
+  if (
+    !/stats(\.html)?\/?$/.test(location.pathname) &&
+    !document.querySelector("script[src*='overlay.js']")
+  ) {
+    var ovs = document.createElement("script");
+    ovs.src = "/overlay.js";
+    document.body.appendChild(ovs);
+  }
 
   function total(m) {
     var t = 0;

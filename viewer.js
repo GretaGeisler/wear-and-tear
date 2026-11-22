@@ -1,8 +1,9 @@
-/* viewer.js v6 – Burn-In-Archiv als erste Ansicht von stats.html.
+/* viewer.js v7 – Burn-In-Archiv als erste Ansicht von stats.html.
    Einbinden: <script src="/viewer.js"></script> vor </body>, NACH burn.js, tracker.js und dem Inline-Skript.
    Jeder Screenshot = der echte Zustand von #wear (Cursor-Burns) und #ghosts (Text-Burns).
    - Umschalter Stats / Subpages (Overview oben links UND in der Tabelle "State archive")
-   - Subpages werden im Hintergrund per unsichtbarem iframe fotografiert (BG-Block unten) */
+   - Subpages werden im Hintergrund per unsichtbarem iframe fotografiert (BG-Block unten)
+   - "Each metric" ist auf der Stats-Seite ausgeblendet (steht im Overlay der Headerzeile, overlay.js) */
 (function () {
   var C = {
     SNAP_MS: 30000,
@@ -549,6 +550,7 @@
 
   /* ---------- Graph "All metrics in one graph": Hilfslinien (0 / 50 / 100 %) weg, [ ] / [•] vor den Kategorien ---------- */
   var GRAPH = {
+    hideEachMetric: true, /* Kapitel "Each metric" auf der Stats-Seite ausblenden (steht jetzt im Overlay der Headerzeile, overlay.js) */
     hideRefLines: true,   /* waagrechte Hilfslinien + Beschriftung 0 / 50 / 100 % ausblenden */
     checkboxes: true,     /* vor jeder klickbaren Kategorie [ ] bzw. [•] */
     hideAllLines: true,   /* im Graphen überhaupt keine Linien im Hintergrund (nur die Datenkurven bleiben) */
@@ -668,7 +670,21 @@
     });
   }
 
+  /* Kapitel "Each metric" auf der Stats-Seite ausblenden: die Zahlenreihen stehen jetzt im Overlay (Klick auf die Headerzeile).
+     Nur ausgeblendet, nicht entfernt: das Inline-Skript der Seite baut die Karten weiter (getElementById("grid")). */
+  function hideEachMetric() {
+    if (!GRAPH.hideEachMetric) return;
+    Array.prototype.forEach.call(document.querySelectorAll(".dsec"), function (sec) {
+      var h = sec.querySelector("h2");
+      if (h && /^\s*each metric\s*$/i.test(h.textContent) && !sec.getAttribute("data-vh")) {
+        sec.setAttribute("data-vh", "1");
+        sec.style.setProperty("display", "none", "important");
+      }
+    });
+  }
+
   function decorate() {
+    hideEachMetric();
     renameRows();
     trimUnits();
     var root = graphRoot() || stage;

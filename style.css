@@ -1,7 +1,18 @@
-/* Wear and Tear – shared stylesheet */
+/* Wear and Tear – shared stylesheet (start page, stats page, sub-pages)
 
-/* IBM Plex Mono Light */
+   Reihenfolge der Dateien in jeder Seite:
+     1. /style.css   (diese Datei, gilt überall)
+     2. /sub.css     (nur Subpages: Textblöcke)
+     3. <style>      (pro Seite nur noch die vier Farben im :root)
+
+   Farben pro Seite NUR im :root der jeweiligen Seite ändern:
+     --bg  --fg  --fg-small  --burn
+*/
+
+/* IBM Plex Mono Light – aktuell ungenutzt, weil --mono unten auf Times New Roman steht.
+   Wieder einschalten: Zeile aktivieren und --mono: "IBM Plex Mono", monospace; setzen.
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300&display=swap");
+*/
 
 
 /* =========================================
@@ -11,7 +22,7 @@
 :root {
   color-scheme: only light;
 
-  /* colours */
+  /* colours (pro Seite im eigenen :root überschreibbar) */
   --bg: #ffffff;
   --fg: #000000;
   --fg-small: #000000;
@@ -99,14 +110,19 @@ h2,
   color: var(--fg);
 }
 
-/* slight blur */
-
 h1,
-#list,
+#list {
+  filter: none;
+}
+
+/* kein Blur auf den Ecken-Infos und Buttons (muss !important sein, andere Regeln setzen Filter) */
+
 .hud,
 #tog,
-.back {
-  filter: none;
+.back,
+#hud-l,
+#hud-r {
+  filter: none !important;
 }
 
 
@@ -114,8 +130,7 @@ h1,
    BACKGROUND AND EFFECT LAYERS
    ========================================= */
 
-
-/* burn layer */
+/* burn layer (Cursor-Spuren) */
 
 #wear {
   position: fixed;
@@ -125,11 +140,10 @@ h1,
   pointer-events: none;
   z-index: 5;
   filter: blur(1px) url(#rough);
-  opacity: 0.4; /* 1 = wie bisher, 0 = unsichtbar */
-
+  opacity: 0.4; /* 1 = volle Stärke, 0 = unsichtbar */
 }
 
-/* ghosts */
+/* ghosts (Text-Echos) */
 
 #ghosts {
   position: fixed;
@@ -138,7 +152,6 @@ h1,
   z-index: 4;
   overflow: hidden;
   opacity: 0.4;
-
 }
 
 #ghosts,
@@ -152,9 +165,35 @@ h1,
   appearance: none;
 }
 
+/* translucent paper (benötigt /image2.png im Hauptordner; fehlt die Datei, gibt es nur einen 404 und sonst keinen Effekt) */
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+
+  z-index: 10;
+  pointer-events: none;
+
+  background-image: url("./image2.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  opacity: 0.1;
+}
+
+/* text shadow */
+
+h1,
+h2,
+#list a {
+  text-shadow: 3px 4px 7px rgba(55, 50, 50, 0.16);
+}
+
 
 /* =========================================
-   FIRST SCREEN – VERTICAL INDEX
+   FIRST SCREEN – VERTICAL INDEX (start page + sub-pages)
    ========================================= */
 
 .hero-index {
@@ -192,7 +231,7 @@ h1,
   text-transform: uppercase;
 }
 
-/* large text inserted into the gaps */
+/* large text inserted into the gaps (start page) */
 
 .hero-index .index-insert {
   height: 0;
@@ -206,7 +245,7 @@ h1,
   width: 100%;
 
   font-family: "Times New Roman", Times, serif;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 0.9;
   letter-spacing: 0.15em;
   font-weight: normal;
@@ -219,9 +258,51 @@ h1,
   pointer-events: none;
 }
 
+/* the heading of a sub-page takes the place of its letter and looks exactly like the other small rows */
+
+.hero-index h1.index-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: normal;
+  line-height: 50px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-shadow: none;
+  filter: none;
+}
+
+/* build-up: rows and inserted texts fade in one after the other, top to bottom (sub.js sets --d) */
+
+.hero-index .index-item,
+.hero-index .index-insert {
+  opacity: 0;
+  transition: opacity var(--fade, 1.4s) cubic-bezier(0.33, 0, 0.2, 1);
+  transition-delay: var(--d, 0s);
+}
+
+.hero-index.show .index-item,
+.hero-index.show .index-insert {
+  opacity: 1;
+}
+
+/* corner info hidden until the legend reveals it (class set by burn.js on the start page) */
+
+body.hud-intro #hud-l .hud-group,
+body.hud-intro #hud-r {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.6s ease;
+}
+
+body.hud-intro #hud-l .hud-group.on,
+body.hud-intro.hud-r-on #hud-r {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 
 /* =========================================
-   TEXT SCREENS
+   TEXT SCREENS (Grundwerte; Subpages überschreiben sie in sub.css)
    ========================================= */
 
 .textsec {
@@ -243,7 +324,7 @@ h1,
   max-width: 620px;
 
   font-family: "Times New Roman", Times, serif;
-  font-size: 16px;
+  font-size: 12px;
   line-height: 1.25;
 
   text-transform: uppercase;
@@ -287,7 +368,7 @@ h1,
 
 
 /* =========================================
-   INDEX LIST
+   INDEX LIST (start page)
    ========================================= */
 
 #list {
@@ -301,7 +382,7 @@ h1,
   text-align: center;
 
   font-family: "Times New Roman", Times, serif;
-  font-size: 16px;
+  font-size: 12px;
   line-height: 1.25;
   text-transform: uppercase;
 
@@ -321,8 +402,6 @@ h1,
 
   counter-reset: index-item;
 }
-
-/* list entries */
 
 #list li {
   counter-increment: index-item;
@@ -350,33 +429,13 @@ h1,
 
 /* staggered animation */
 
-#list li.show:nth-child(1) {
-  transition-delay: 0s;
-}
-
-#list li.show:nth-child(2) {
-  transition-delay: 0.18s;
-}
-
-#list li.show:nth-child(3) {
-  transition-delay: 0.36s;
-}
-
-#list li.show:nth-child(4) {
-  transition-delay: 0.54s;
-}
-
-#list li.show:nth-child(5) {
-  transition-delay: 0.72s;
-}
-
-#list li.show:nth-child(6) {
-  transition-delay: 0.9s;
-}
-
-#list li.show:nth-child(7) {
-  transition-delay: 1.08s;
-}
+#list li.show:nth-child(1) { transition-delay: 0s; }
+#list li.show:nth-child(2) { transition-delay: 0.18s; }
+#list li.show:nth-child(3) { transition-delay: 0.36s; }
+#list li.show:nth-child(4) { transition-delay: 0.54s; }
+#list li.show:nth-child(5) { transition-delay: 0.72s; }
+#list li.show:nth-child(6) { transition-delay: 0.9s; }
+#list li.show:nth-child(7) { transition-delay: 1.08s; }
 
 /* list links */
 
@@ -392,7 +451,7 @@ h1,
 
   text-decoration: none;
 
-  font-size: 48px;
+  font-size: 12px;
   line-height: 1;
   text-align: center;
 
@@ -419,7 +478,7 @@ h1,
 
 
 /* =========================================
-   HUD – TOP LEFT AND RIGHT
+   HUD – TOP LEFT AND RIGHT, ESC, SHOW TRACES
    ========================================= */
 
 /* all HUD text */
@@ -455,8 +514,6 @@ h1,
   white-space: nowrap;
   text-transform: uppercase;
 }
-
-/* 10px between category name and unit */
 
 .hud-group {
   display: flex;
@@ -518,14 +575,7 @@ h1,
   border: 0;
 }
 
-/* hide content in bare mode */
-
-body.bare #stage,
-body.bare .back {
-  visibility: hidden;
-}
-
-/* back link */
+/* ESC link (alle Seiten gleich: 12px, links unten) */
 
 .back {
   position: fixed;
@@ -540,139 +590,27 @@ body.bare .back {
   text-decoration: none;
 }
 
+/* hide content in bare mode (SHOW TRACES) */
 
-/* =========================================
-   TRANSLUCENT PAPER
-   ========================================= */
-
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-
-  z-index: 10;
-  pointer-events: none;
-
-  background-image: url("./image2.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-
-  opacity: 0.1;
+body.bare #stage,
+body.bare .back {
+  visibility: hidden;
 }
 
 
 /* =========================================
-   TEXT SHADOW
+   SUB-PAGES – PICTURE
    ========================================= */
 
-h1,
-h2,
-#list a {
-  text-shadow: 3px 4px 7px rgba(55, 50, 50, 0.16);
-}
-
-
-/* =========================================
-   SUBPAGES – CENTRED PICTURE + INDEX HEADING
-   ========================================= */
-
-/* centred picture, about 600 x 900 (smaller on narrow screens, same proportions).
-   It sits OUTSIDE #stage on purpose: inside it, "difference" would have no background to blend with. */
-
-.subimg {
-  position: absolute;
-  top: 50vh;
-  top: 50svh;
-  left: 50%;
-  width: min(600px, 92vw);
-  aspect-ratio: 2 / 3;
-  height: auto;
-  object-fit: cover;
-  transform: translate(-50%, -50%);
-  mix-blend-mode: difference;
-  opacity: 0.3;
-  z-index: 3;
-  pointer-events: none;
-}
-
-/* the heading of a subpage, standing in the index column like the large texts of the start page */
-
-.hero-index .index-insert.index-title {
-  margin: 0;
-  font-size: 48px;
-  font-weight: normal;
-  line-height: 1;
-  letter-spacing: 0.02em;
-}
-
-@media (max-width: 700px) {
-  .hero-index .index-insert.index-title {
-    font-size: clamp(26px, 9vw, 36px);
-    letter-spacing: 0.02em;
-  }
-}
-
-
-/* =========================================
-   START PAGE INTRO – BUILD-UP + HUD REVEAL
-   ========================================= */
-
-/* rows and inserted texts fade in one after the other, top to bottom (intro.js sets --i / --gap) */
-
-.hero-index .index-item,
-.hero-index .index-insert {
-  opacity: 0;
-  transition: opacity var(--fade, 1.4s) cubic-bezier(0.33, 0, 0.2, 1);
-  transition-delay: var(--d, 0s); /* set per part by intro.js */
-}
-
-.hero-index.show .index-item,
-.hero-index.show .index-insert {
-  opacity: 1;
-}
-
-/* corner info hidden until the legend reveals it (class set by burn.js on the start page) */
-
-body.hud-intro #hud-l .hud-group,
-body.hud-intro #hud-r {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 1.6s ease;
-}
-
-body.hud-intro #hud-l .hud-group.on,
-body.hud-intro.hud-r-on #hud-r {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* =========================================
-   SUB-PAGES – INDEX ROWS, HEADING, PICTURE
-   ========================================= */
-
-/* the heading takes the place of its letter and looks exactly like the other small rows */
-
-.hero-index h1.index-title {
-  margin: 0;
-  font-size: 12px;
-  font-weight: normal;
-  line-height: 50px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  text-shadow: none;
-  filter: none;
-}
-
-/* picture: fixed to the screen (only the text scrolls), centred, turned by 90 degrees and cropped to a
-   3:2 landscape frame (about 900 x 600). It sits OUTSIDE #stage so it can blend with the page.
-   Two layers: .sub-base = difference at 50 %, .sub-burn = screen, the burn-in (opacity set by burn.js). */
+/* Bild: am Bildschirm fixiert (nur der Text scrollt), zentriert, um 90° gedreht und auf einen 3:2-Rahmen zugeschnitten.
+   Es liegt ausserhalb von #stage, damit es mit der Seite blenden kann (gebaut von sub.js).
+   Zwei Ebenen: .sub-base = difference bei 50 %, .sub-burn = screen, das Burn-in (Deckkraft setzt sub.js). */
 
 .sub-img {
-  --w: min(700px, 94vw, 141vh); /* picture width: 700 x 467 px (3:2) - change 700px to resize */
-  --w: min(700px, 94vw, 141svh);
-  --sat: 0.1; /* colour saturation (1 = original, lower = greyer) */
-  --con: 1.6; /* contrast (1 = original, higher = harder) */
+  --w: min(700px, 94vw, 141vh);  /* Fallback für alte Browser */
+  --w: min(700px, 94vw, 141svh); /* Bildbreite: 700 x 467 px (3:2); 700px ändern = Bild skalieren */
+  --sat: 0.1; /* Farbsättigung (1 = Original, 0 = schwarzweiss) */
+  --con: 1.6; /* Kontrast (1 = Original, höher = härter) */
   --h: calc(var(--w) * 2 / 3);
 
   position: fixed;
@@ -700,7 +638,7 @@ body.hud-intro.hud-r-on #hud-r {
   opacity: 0.5;
 }
 
-/* SHOW TRACES: the picture itself is hidden, only its burn-in (.sub-burn, screen) stays visible */
+/* SHOW TRACES: das Bild selbst verschwindet, nur das Burn-in (.sub-burn) bleibt */
 
 body.bare .sub-base.on {
   opacity: 0;
@@ -708,10 +646,10 @@ body.bare .sub-base.on {
 }
 
 .sub-burn {
-  z-index: 5; /* same level as the cursor burns (#wear) but later in the page, so it lies on top of them and of the text ghosts */
+  z-index: 5; /* gleiche Ebene wie die Cursor-Spuren (#wear), liegt aber später im DOM und damit darüber */
   mix-blend-mode: screen;
   transition: opacity 1.5s ease;
-  filter: opacity(0.4);
+  filter: opacity(0.4); /* Gesamtstärke des Bild-Burn-ins */
 }
 
 .sub-frame {
@@ -721,8 +659,7 @@ body.bare .sub-base.on {
   overflow: hidden;
 }
 
-/* the picture is laid on its side (it is as wide as the frame is tall), then turned by 90 degrees;
-   frame width = --w, frame height = --h */
+/* das Bild liegt auf der Seite (so breit wie der Rahmen hoch ist) und wird um 90° gedreht */
 
 .sub-frame img {
   position: absolute;
@@ -737,53 +674,24 @@ body.bare .sub-base.on {
   filter: saturate(var(--sat)) contrast(var(--con));
 }
 
-@media (prefers-reduced-motion: reduce) {
-
-  .sub-img,
-  .hero-index .index-item,
-  .hero-index .index-insert,
-  body.hud-intro #hud-l .hud-group,
-  body.hud-intro #hud-r {
-    transition: none;
-  }
-}
-
 
 /* =========================================
-   MOBILE
+   MOBILE (bis 700px)
    ========================================= */
 
 @media (max-width: 700px) {
 
   h1 {
-    font-size: clamp(26px, 9.5vw, 48px);
+    font-size: clamp(12px, 9.5vw, 12px);
   }
 
   #list li a {
-    font-size: clamp(26px, 9vw, 36px);
+    font-size: clamp(12px, 9vw, 12px);
 
     grid-template-columns: 0.7fr 2.6fr 0.7fr;
 
     column-gap: 8px;
     padding: 10px 0;
-  }
-
-  /* HUD groups on mobile */
-
-  #hud-l {
-    gap: 20px;
-  }
-
-  .hud-group {
-    gap: 5px;
-  }
-
-  #hud-r {
-    gap: 10px;
-  }
-
-  #hud-xy {
-    display: none;
   }
 
   /* large inserted text */
@@ -792,61 +700,11 @@ body.bare .sub-base.on {
     font-size: clamp(11px, 3.2vw, 14px);
     letter-spacing: 0.08em;
   }
-}
 
-
-/* =========================================
-   TOUCH SCREENS
-   ========================================= */
-
-@media (pointer: coarse) {
-
-  html {
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  body {
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none;
-  }
-
-  #wear {
-    filter: blur(1px);
-  }
-
-  body::after {
-    --paper-blur: 1.5px;
-  }
-}
-
-
-/* =========================================
-   ACCESSIBILITY
-   ========================================= */
-
-@media (prefers-reduced-motion: reduce) {
-
-  #list li {
-    transition: none;
-    transform: none;
-  }
-
-  .textblock .line {
-    transition: none;
-    transform: none;
-  }
-}
-
-
-/* =========================================
-   MOBILE HUD – same on every page
-   ========================================= */
-
-@media (max-width: 700px) {
+  /* HUD: auf jeder Seite gleich, kurze Namen statt langer */
 
   body #hud-l {
-    left: 14px;                 /* wie ESC und SHOW TRACES */
+    left: 14px; /* wie ESC und SHOW TRACES */
     gap: 8px;
     font-size: 12px;
     letter-spacing: var(--mono-spacing);
@@ -883,33 +741,81 @@ body.bare .sub-base.on {
   body #hud-l .hud-group:nth-child(3) > span:first-child::before { content: "WP"; }
   body #hud-l .hud-group:nth-child(4) > span:first-child::before { content: "PU"; }
   body #hud-l .hud-group:nth-child(5) > span:first-child::before { content: "CO"; }
-}
 
-/* very narrow phones: keep everything on one line */
-@media (max-width: 380px) {
-  body #hud-l {
-    gap: 6px;
-    letter-spacing: 0.02em;
-  }
-  body #hud-r {
-    letter-spacing: 0.02em;
-  }
-}
-/* MOBILE: full-height screens (lvh), so the next screen never peeks in */
-@media (max-width: 700px) {
+  /* full-height screens (lvh), so the next screen never peeks in */
+
   .hero-index,
   .textsec,
   #list {
     min-height: 100vh !important;
     min-height: 100lvh !important;
   }
-}
 
-.hud, #tog, .back, #hud-l, #hud-r {
-  filter: none !important;
-}
+  /* sub-pages: smaller picture (3:2 frame stays intact, --h follows --w) */
 
-  /* sub-pages: smaller picture on mobile (3:2 frame stays intact, --h follows --w) */
   .sub-img {
     --w: min(700px, 76vw, 141svh);
   }
+}
+
+/* very narrow phones: keep everything on one line */
+
+@media (max-width: 380px) {
+  body #hud-l {
+    gap: 6px;
+    letter-spacing: 0.02em;
+  }
+
+  body #hud-r {
+    letter-spacing: 0.02em;
+  }
+}
+
+
+/* =========================================
+   TOUCH SCREENS
+   ========================================= */
+
+@media (pointer: coarse) {
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* ohne den #rough-Filter (zu schwer für Handys) */
+  #wear {
+    filter: blur(1px);
+  }
+}
+
+
+/* =========================================
+   ACCESSIBILITY – muss ganz am Ende stehen
+   ========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .sub-img,
+  .hero-index .index-item,
+  .hero-index .index-insert,
+  body.hud-intro #hud-l .hud-group,
+  body.hud-intro #hud-r {
+    transition: none;
+  }
+
+  #list li {
+    transition: none;
+    transform: none;
+  }
+
+  .textblock .line {
+    transition: none;
+    transform: none;
+  }
+}
