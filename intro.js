@@ -13,7 +13,8 @@
 // Timing (set on the section, in seconds):
 //   data-stagger = pause between two parts (rows / texts)
 //   data-pause   = extra pause after each text before the next part begins
-//   data-fade    = how long one part takes to fade in (default 1.4)
+//   data-fade    = how long one part takes to fade in (default 1.1)
+// SPEED_LEGEND / SPEED_OTHER below scale all three at once (also the ones set on the section).
 (function () {
   "use strict";
 
@@ -23,7 +24,17 @@
   var DEFAULT_STAGGER = 0.4;
   var DEFAULT_PAUSE = 0.5;
   var DEFAULT_FADE = 1.4;
-  var HUD_LEAD = 1.2; // seconds after the code row appears until its corner info follows
+
+  // overall speed of the first build-up: multiplies pause, stagger and fade time of every screen.
+  // 1 = as before, 0.8 = a bit faster (still smooth), 0.6 = clearly faster
+  var SPEED_LEGEND = 0.8; // the legend screen (text -> code -> corner info)
+  var SPEED_OTHER = 1.2; // all other screens (closer to the original, slightly faster)
+  // a single screen can override this in the HTML: <section class="hero-index" data-speed="0.9">
+
+  // legend screen (text -> code row -> corner info), how tightly the three belong together:
+  var HUD_LEAD = 0.7; // seconds after the code row starts to appear until its corner info follows (was 1.8)
+  var LEGEND_PAUSE = 0.5; // multiplies the pause between a text and its code row (smaller = closer together)
+  var HUD_WAIT = 0.5; // seconds to wait after the corner info before the next entry begins (was 0.8)
 
   // when a screen comes into view AGAIN it builds up faster:
   var REPEAT_SPEED = 0.3; // multiplies all waiting times (0.3 = about 3x faster, 1 = same as the first time)
@@ -43,6 +54,14 @@
     if (isNaN(fade)) fade = DEFAULT_FADE;
 
     var legend = sec.classList.contains("hero-legend");
+
+    var speed = parseFloat(sec.getAttribute("data-speed"));
+    if (isNaN(speed)) speed = legend ? SPEED_LEGEND : SPEED_OTHER;
+
+    gap *= speed;
+    pause *= speed * (legend ? LEGEND_PAUSE : 1);
+    fade *= speed;
+
     var parts = []; // { el, d }  d = delay of this part in seconds (first visit)
     var reveals = [];
     var t = 0;
@@ -56,7 +75,7 @@
       } else if (afterInsert) {
         // the code row (UN, WP ...) just appeared under the text: now the corner info follows
         reveals.push((t + HUD_LEAD) * 1000);
-        t += HUD_LEAD + 0.8; // wait until it is there before the next entry begins
+        t += HUD_LEAD + HUD_WAIT; // wait until it is there before the next entry begins
         afterInsert = false;
       }
       t += gap;

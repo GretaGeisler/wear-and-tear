@@ -26,9 +26,11 @@
   var TOP = 54; // px from the top edge to the first entry (same as the headings on the stats page)
   var SIZE = 12; // px: type size (same as the tracker line)
   var LINE = 1.05; // line height of the entries (same as "Each metric")
-  var VAL_W = 120; // px: width of the value column, so all changes start on the same vertical line
-  var PCT_GAP = 40; // px: extra space between value column and change
-  var PAD = 6; // px above and below every entry
+  // two columns, lined up under the corner info: 1 = name (under USER), 2 = change in % with arrow.
+  // The x positions are measured from the corner info itself.
+  var COL2_GROUP = 2; // under which corner-info block column 2 starts: 0 USER, 1 CLICKS, 2 WEAR, 3 POWER, 4 CO2
+  var MIN_C1 = 150; // px: minimum width of column 1 (so long names never run into column 2), also the fallback
+  var PAD = 2; // px above and below every entry (smaller = rows closer together)
   var MORE_GAP = 24; // px between the last entry and "Learn more about your traces" (smaller = closer)
   var ARROW_FONT =
     "font-family:'DejaVu Sans','Segoe UI Symbol','Arial Unicode MS','Noto Sans Symbols2','Noto Sans Symbols',Arial,sans-serif;" +
@@ -100,11 +102,11 @@
     "#wt-ov .wt-row,#wt-ov .wt-row *,#wt-ov .wt-more{font:400 " + SIZE + "px/" + LINE + " 'Times New Roman',Times,serif;" +
     "text-transform:uppercase;letter-spacing:0;color:var(--fg-small,#000);text-decoration:none;text-align:left;" +
     "-webkit-font-smoothing:antialiased;margin:0}" +
-    /* entry: line 1 name, line 2 value + (gap) + change with arrow */
-    "#wt-ov .wt-row{display:grid;grid-template-columns:" + VAL_W + "px auto;grid-template-areas:'n n' 'v p';justify-content:start;" +
-    "column-gap:" + PCT_GAP + "px;row-gap:0;align-items:baseline;padding:" + PAD + "px 0;" +
+    /* entry: one line, two columns: name | change with arrow */
+    "#wt-ov .wt-row{display:grid;grid-template-columns:var(--c1," + MIN_C1 + "px) auto;justify-content:start;" +
+    "margin-left:var(--x0,0px);column-gap:0;align-items:baseline;padding:" + PAD + "px 0;white-space:nowrap;" +
     "opacity:0;transform:translateY(6px);transition:opacity .25s ease,transform .25s ease}" +
-    "#wt-ov .wt-n{grid-area:n}#wt-ov .wt-v{grid-area:v}#wt-ov .wt-p{grid-area:p}" +
+    "#wt-ov .wt-n{grid-column:1}#wt-ov .wt-p{grid-column:2}" +
     "#wt-ov .wt-p[data-dir='up']::after{content:' \\2197\\FE0E';display:inline;" + ARROW_FONT + "}" +
     "#wt-ov .wt-p[data-dir='down']::after{content:' \\2198\\FE0E';display:inline;" + ARROW_FONT + "}" +
     /* build-up: entry first, value + change a moment later */
@@ -113,7 +115,7 @@
     "#wt-ov .wt-v,#wt-ov .wt-p{opacity:0;transition:opacity .25s ease}" +
     "#wt-ov.open .wt-v,#wt-ov.open .wt-p{opacity:1;transition:opacity 1.1s " + ease + ";" +
     "transition-delay:calc(var(--i) * " + STAGGER + "ms + " + (START + SUBDELAY) + "ms)}" +
-    "#wt-ov .wt-more{display:inline-block;margin-top:0;padding-top:" + MORE_GAP + "px;opacity:0;transition:opacity .25s ease}" +
+    "#wt-ov .wt-more{display:inline-block;margin-top:0;margin-left:var(--x0,0px);padding-top:" + MORE_GAP + "px;opacity:0;transition:opacity .25s ease}" +
     "#wt-ov.open .wt-more{opacity:1;transition:opacity 1s ease;transition-delay:calc(var(--i) * " + STAGGER + "ms + " + START + "ms)}" +
     "#wt-ov .wt-more:hover{opacity:.5}" +
     "body.wt-open #hud-l,body.wt-open #hud-r,body.wt-open .back{z-index:1600}" +
@@ -138,6 +140,21 @@
     if (c) bg.style.background = c;
   }
 
+  // column positions: measured from the corner info (#hud-l): col 1 under USER,
+  // col 2 under the block set in COL2_GROUP. Falls back to the minimum width.
+  function layout() {
+    var g = document.querySelectorAll("#hud-l .hud-group"),
+      x = [];
+    [0, COL2_GROUP].forEach(function (n) {
+      var r = g[n] && g[n].getBoundingClientRect();
+      x.push(r && r.width ? r.left : null);
+    });
+    var pad = parseFloat(getComputedStyle(inner).paddingLeft) || 14;
+    if (x[0] === null || x[1] === null) x = [pad, pad + MIN_C1];
+    inner.style.setProperty("--x0", x[0] - pad + "px");
+    inner.style.setProperty("--c1", Math.max(MIN_C1, x[1] - x[0]) + "px");
+  }
+
   var cells = [],
     built = false;
   function build() {
@@ -150,17 +167,14 @@
       row.className = "wt-row";
       row.style.setProperty("--i", i);
       var n = document.createElement("span"),
-        v = document.createElement("span"),
         p = document.createElement("span");
       n.className = "wt-n";
-      v.className = "wt-v";
       p.className = "wt-p";
       n.textContent = r.name;
       row.appendChild(n);
-      row.appendChild(v);
       row.appendChild(p);
       inner.appendChild(row);
-      cells.push([v, p]);
+      cells.push(p);
     });
     var more = document.createElement("a");
     more.className = "wt-more";
@@ -175,17 +189,17 @@
     var d = data();
     d.forEach(function (r, i) {
       if (!cells[i]) return;
-      if (cells[i][0].textContent !== r.val) cells[i][0].textContent = r.val;
-      if (cells[i][1].textContent !== r.pct) cells[i][1].textContent = r.pct;
+      if (cells[i].textContent !== r.pct) cells[i].textContent = r.pct;
       var dir = dirOf(r.pct);
-      if (dir) cells[i][1].setAttribute("data-dir", dir);
-      else cells[i][1].removeAttribute("data-dir");
+      if (dir) cells[i].setAttribute("data-dir", dir);
+      else cells[i].removeAttribute("data-dir");
     });
   }
 
   var timer = null;
   function open() {
     paint();
+    layout();
     build();
     update();
     ov.classList.add("open");
@@ -233,4 +247,5 @@
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && ov.classList.contains("open")) close();
   });
+  window.addEventListener("resize", layout);
 })();
