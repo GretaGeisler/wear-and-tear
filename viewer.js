@@ -8,7 +8,8 @@
     SNAP_MS: 30000,
     W: 1280,      /* Auflösung der Screenshots (Breite in px). 480 = alt, 960 = scharf, 1280+ = sehr scharf */
     MAX: 24,      /* max. Anzahl gespeicherter Frames */
-    KEY: "wt_arc"
+    KEY: "wt_arc",
+    BUDGET: 2000000  /* max. Zeichen (≈ Bytes) für das Stats-Archiv in localStorage; der Rest (~3 MB) bleibt für die Subpage-Frames frei */
   };
 
   /* ---------- LOOK DER FRAMES: hier anpassen ---------- */
@@ -383,7 +384,9 @@
     var a = states.map(function (s) { return { ts: s.ts, ar: s.ar, img: s.img, cov: s.cov, wear: s.wear, gh: s.gh, wh: s.wh, co2: s.co2, kb: s.kb, st: s.st }; });
     /* localStorage ist klein (~5 MB): bei hoher Auflösung so viele neueste Frames behalten, wie hineinpassen */
     for (var n = a.length; n > 0; n = Math.floor(n * 0.7) || (n > 1 ? 1 : 0)) {
-      try { localStorage.setItem(C.KEY, JSON.stringify(a.slice(0, n))); return; } catch (e) {}
+      var js = JSON.stringify(a.slice(0, n));
+      if (js.length > C.BUDGET && n > 1) continue; /* zu groß: weniger Frames speichern, damit Platz für die Subpages bleibt */
+      try { localStorage.setItem(C.KEY, js); return; } catch (e) {}
     }
   }
 
@@ -810,14 +813,39 @@
     on: true,
     pages: ["pristine", "settled", "patina", "worn", "weathered", "neglected", "defective"],
     ext: ".html",       /* "" falls deine URLs ohne .html laufen */
+    dir: "",            /* Ordner der Subpages relativ zu stats.html, z. B. "sub/" (leer = gleicher Ordner; sonst wird automatisch gesucht) */
+    paths: {},          /* einzelne Pfade fest eintragen, z. B. { defective: "pages/defective.html" } */
     every: 120000,      /* ms zwischen zwei Durchläufen (alle Seiten nacheinander, ca. 7 s pro Seite) */
     timeout: 20000      /* ms, danach wird der iframe auf jeden Fall entfernt */
   };
-  var bgBusy = false;
+  var bgBusy = false, bgFound = {};
+  /* Sucht die echte Adresse einer Subpage (mehrere übliche Orte), erkennt sie am Markup "sub-index" und merkt sie sich */
+  function bgResolve(slug, cb) {
+    if (bgFound[slug]) return cb(bgFound[slug] === -1 ? null : bgFound[slug]);
+    var c = [];
+    if (BG.paths[slug]) c.push(BG.paths[slug]);
+    [BG.dir, "", "sub/", "pages/", "subpages/"].forEach(function (d) {
+      [BG.ext, ".html", ""].forEach(function (e) {
+        var p = d + slug + e;
+        if (c.indexOf(p) < 0) c.push(p);
+      });
+    });
+    c.push(slug + "/index.html");
+    (function tryNext(i) {
+      if (i >= c.length) { bgFound[slug] = -1; return cb(null); }
+      var u = new URL(c[i], location.href).href;
+      fetch(u, { cache: "no-store" }).then(function (r) {
+        if (!r.ok) return tryNext(i + 1);
+        return r.text().then(function (t) {
+          if (/sub-index/.test(t)) { bgFound[slug] = u; console.info("[viewer] Subpage gefunden:", u); cb(u); }
+          else tryNext(i + 1);
+        });
+      }).catch(function () { tryNext(i + 1); });
+    })(0);
+  }
   function bgOne(slug, done) {
-    var url = new URL(slug + BG.ext, location.href).href;
-    fetch(url, { method: "HEAD", cache: "no-store" }).then(function (r) {
-      if (!r.ok) { console.warn("[viewer] Subpage nicht gefunden:", url, r.status); done(); return; }
+    bgResolve(slug, function (url) {
+      if (!url) { console.warn("[viewer] Subpage nicht gefunden:", slug, "– Ordner in BG.dir oder Pfad in BG.paths eintragen"); done(); return; }
       var f = document.createElement("iframe"), fin = false, tm;
       function end() {
         if (fin) return; fin = true;
@@ -843,7 +871,7 @@
       f.src = url + "?snap=1";
       document.body.appendChild(f);
       tm = setTimeout(end, BG.timeout);
-    }).catch(function () { done(); });
+    });
   }
   function bgRun() {
     if (!BG.on || bgBusy || document.hidden) return;
