@@ -15,7 +15,8 @@
   var S = 6; // cell size in px
   var HALO = 10; // soft glow around a cursor burn
   var GHOST_K = 0.4; // how strongly a text ghost shows (opacity = wear * this): big type
-  var GHOST_K_SMALL = 0.4; // ... and small type (under 28 px), lower = fainter
+  var GHOST_K_SMALL = 0.9; // ... and small type (under 28 px), lower = fainter (1 = can burn in fully)
+  var SMALL_CURVE = 0.6; // small type only: below 1 = it shows up earlier (less use needed), 1 = linear
   var HALO_ALPHA = 0.3; // strongest the glow can get (lower = less "highlighted box" look)
   var PUSH_MS = 1000; // how often your traces are sent to the server
   var PULL_MS = 1000; // how often the traces of the others are fetched (= how "live" it is)
@@ -612,6 +613,7 @@
 
   function place(c, pos, a) {
     var fs = parseFloat(c.style.fontSize) || 0;
+    var small = fs > 0 && fs < 28;
     c.style.cssText =
       c.style.cssText +
       ";position:absolute;margin:0;left:" +
@@ -623,7 +625,7 @@
       "px;height:" +
       pos[3] +
       "px;opacity:" +
-      Math.min(1, a * (c.tagName === "IMG" ? 0.8 : fs && fs < 28 ? GHOST_K_SMALL : GHOST_K));
+      Math.min(1, (small ? Math.pow(a, SMALL_CURVE) : a) * (c.tagName === "IMG" ? 0.8 : small ? GHOST_K_SMALL : GHOST_K));
 
     // sharper for small type: the blur grows with the font size, and only big type gets a glow
     // (a glow on small type fills the gaps between the letters and looks like a highlighted box)

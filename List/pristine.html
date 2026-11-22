@@ -10,14 +10,12 @@
     <meta name="color-scheme" content="only light" />
     <link rel="stylesheet" href="/style.css" />
     <style>
-
-     :root {
-    --bg: #BCBCBC;
-    --fg: #FFFFFF;
-    --fg-small: #ffffff;
-    --burn: #C6C6C6;
-  }
-
+      :root {
+        --bg: #bcbcbc;
+        --fg: #ffffff;
+        --fg-small: #ffffff;
+        --burn: #c6c6c6;
+      }
 
       .back {
         position: fixed;
@@ -89,8 +87,12 @@
         letter-spacing: 0.1em;
         opacity: var(--title-opacity);
       }
-      .textblock.upper { grid-row: 1; }
-      .textblock.lower { grid-row: 3; }
+      .textblock.upper {
+        grid-row: 1;
+      }
+      .textblock.lower {
+        grid-row: 3;
+      }
 
       .textblock .gap {
         display: inline-block;
@@ -122,7 +124,9 @@
       .textsec.show .line {
         opacity: 1;
         transform: none;
-        transition-delay: calc(var(--i) * 260ms); /* speed of the line build-up */
+        transition-delay: calc(
+          var(--i) * 260ms
+        ); /* speed of the line build-up */
       }
 
       /* MOBILE: same size as the tracker line at the top (12px) */
@@ -146,35 +150,25 @@
     </style>
   </head>
   <body>
-
     <a class="back" href="/">ESC</a>
 
     <div id="stage">
-<div class="hero-index sub-index">
-  <h1 class="index-item index-title">Pristine</h1>
-</div>
+      <div class="hero-index sub-index">
+        <h1 class="index-item index-title">Pristine</h1>
+      </div>
 
       <!-- Two text blocks: first = upper third, second = lower third.
            Replace the paragraphs; use <br>, {2} and *word* as described above. -->
       <section class="textsec" id="text">
-
-<div class="textblock upper" data-manual>
-             <p>
-            Pristine describes the condition of an object or material that
-            remains in its <br />original, {1} untouched, {1} and {1} exceptionally
-            well-preserved {1}state.<br />It refers to something that shows little
-            to no evidence of<br />use, {1} ageing, {1} damage, {1} or {1} external {1}
-            influence.<br />A pristine object typically retains its original
-            appearance, including its <br>colour, {1} texture, {1} finish, {1} and {1} structural {1}
-            characteristics,<br>without noticeable imperfections or alterations.
-            <br />Its surface is generally <br>clean, {1} intact, {1} and {1} free {1} from {1}
-            scratches, {1} stains, {1} discolouration,<br>or {1} other {1} visible {1} signs {1} of {1}
-            deterioration.<br>This condition often suggests that an object
-            has been <br>handled {1} carefully, {1} stored {1} appropriately,<br>or {1} protected {1} from {1}
-            environmental {1} factors {1} and {1} everyday {1} wear.<br />Pristine does not
-            necessarily mean that something is newly manufactured, <br>but rather
-            that it has maintained a condition remarkably close to its original
-            state.
+        <div class="textblock upper" data-manual>
+          <p>
+            original {2} and {2} pure; {2} not {2} spoiled {2} or {2} worn {2}
+            from {2} use<br />the state of exceptional condition, maintaining
+            its initial quality<br />and appearance without any signs of
+            deterioration, damage, or previous use.<br />Maintaining its original
+            chemical composition, molecular arrangement, and surface
+            chemistry,<br />with minimal evidence of oxidation, contamination,
+            or degradation.
           </p>
         </div>
 
@@ -182,28 +176,34 @@
           <p>
             Pristine metal possesses an<br />untouched {1} quality,<br />where
             its original character remains entirely visible. <br />Its surface
-            is <br />clear {1} and {1} uninterrupted,<br />holding the precision,
-            brightness, and definition of its initial finish. <br />Light moves
-            across it with little resistance, revealing an evenness of tone and
-            a sense of completeness. <br />There is no visible history of
-            handling or exposure; the material exists almost entirely as it was
-            first intended. <br />Its beauty lies in its simplicity, in the
-            quiet presence of something that has <br />yet {1} to {1} be {1} changed {1} by {1}
-            time.
+            is <br />clear {1} and {1} uninterrupted,<br />holding the
+            precision, brightness, and definition of its initial finish.
+            <br />Light moves across it with little resistance, revealing an
+            evenness of tone and a sense of completeness. <br />There is no
+            visible history of handling or exposure; the material exists almost
+            entirely as it was first intended. <br />Its beauty lies in its
+            simplicity, in the quiet presence of something that has <br />yet
+            {1} to {1} be {1} changed {1} by {1} time.
           </p>
         </div>
-
       </section>
     </div>
 
     <script src="/tracker.js"></script>
     <script src="/burn.js"></script>
-<script src="/sub.js"></script>
+    <script src="/sub.js"></script>
+    <script src="/subsnap.js"></script>
+    <script src="/overlay.js"></script>
+
     <script>
       (function () {
         var sec = document.getElementById("text");
-        var blocks = Array.prototype.slice.call(sec.querySelectorAll(".textblock"));
-        var ps = Array.prototype.slice.call(sec.querySelectorAll(".textblock p"));
+        var blocks = Array.prototype.slice.call(
+          sec.querySelectorAll(".textblock"),
+        );
+        var ps = Array.prototype.slice.call(
+          sec.querySelectorAll(".textblock p"),
+        );
         var orig = ps.map(function (p) {
           return p.innerHTML;
         });
@@ -214,8 +214,14 @@
         // <br class="m"> counts only on mobile, <br class="d"> only on desktop
         function source(n) {
           return orig[n]
-            .replace(/<br\s+class=["']?m["']?\s*\/?>/gi, mq.matches ? "<br>" : " ")
-            .replace(/<br\s+class=["']?d["']?\s*\/?>/gi, mq.matches ? " " : "<br>");
+            .replace(
+              /<br\s+class=["']?m["']?\s*\/?>/gi,
+              mq.matches ? "<br>" : " ",
+            )
+            .replace(
+              /<br\s+class=["']?d["']?\s*\/?>/gi,
+              mq.matches ? " " : "<br>",
+            );
         }
 
         // words -> tokens:  {t, track}  a word (track = extra letter spacing in em, 0 = normal)
@@ -283,10 +289,14 @@
             var manual = block.hasAttribute("data-manual");
             TRACK = parseFloat(block.getAttribute("data-track")) || 0.35;
             tr = 0;
-            var segs = source(n).split(/<br\s*\/?>/i).map(function (h) {
-              tmp.innerHTML = h;
-              return parse(tmp.textContent.trim().split(/\s+/).filter(Boolean));
-            });
+            var segs = source(n)
+              .split(/<br\s*\/?>/i)
+              .map(function (h) {
+                tmp.innerHTML = h;
+                return parse(
+                  tmp.textContent.trim().split(/\s+/).filter(Boolean),
+                );
+              });
             var lines = [];
             if (manual) {
               lines = segs.filter(function (sg) {
@@ -360,7 +370,7 @@
               e.target.classList.toggle("show", e.isIntersecting);
             });
           },
-          { threshold: 0.35 }
+          { threshold: 0.35 },
         ).observe(sec);
       })();
     </script>
