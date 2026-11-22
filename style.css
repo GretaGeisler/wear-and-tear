@@ -1,17 +1,11 @@
 /* Wear and Tear – shared stylesheet (start page, stats page, sub-pages)
 
    Reihenfolge der Dateien in jeder Seite:
-     1. /style.css   (diese Datei, gilt überall)
-     2. /sub.css     (nur Subpages: Textblöcke)
-     3. <style>      (pro Seite nur noch die vier Farben im :root)
+     1. /style.css   (diese Datei, gilt überall, auch für Subpages)
+     2. <style>      (pro Seite nur noch die vier Farben im :root)
 
    Farben pro Seite NUR im :root der jeweiligen Seite ändern:
      --bg  --fg  --fg-small  --burn
-*/
-
-/* IBM Plex Mono Light – aktuell ungenutzt, weil --mono unten auf Times New Roman steht.
-   Wieder einschalten: Zeile aktivieren und --mono: "IBM Plex Mono", monospace; setzen.
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300&display=swap");
 */
 
 
@@ -34,7 +28,7 @@
   --tex-filter: none;
 
   /* small type */
-  --mono: "Times New Roman";
+  --mono: "Times New Roman", Times, serif;
   --mono-spacing: 0.06em;
 
   box-sizing: border-box;
@@ -67,6 +61,11 @@ body {
     400 14px/1.1 "Times New Roman",
     Times,
     serif;
+
+  /* kein Text markieren (auch nicht per Doppel-/Dreifachklick): Klicks brennen stattdessen ein */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 
@@ -140,7 +139,7 @@ h1,
   pointer-events: none;
   z-index: 5;
   filter: blur(1px) url(#rough);
-  opacity: 0.4; /* 1 = volle Stärke, 0 = unsichtbar */
+  opacity: 0.7; /* 1 = volle Stärke, 0 = unsichtbar */
 }
 
 /* ghosts (Text-Echos) */
@@ -175,7 +174,7 @@ body::after {
   z-index: 10;
   pointer-events: none;
 
-  background-image: url("./image2.png");
+  background-image: url("/image2.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -285,6 +284,17 @@ h2,
   opacity: 1;
 }
 
+/* Index-Zeilen der Subpages */
+
+.sub-index .index-item {
+  text-decoration: none;
+  color: var(--fg-small);
+}
+
+.sub-index .index-title {
+  color: var(--fg);
+}
+
 /* corner info hidden until the legend reveals it (class set by burn.js on the start page) */
 
 body.hud-intro #hud-l .hud-group,
@@ -302,7 +312,7 @@ body.hud-intro.hud-r-on #hud-r {
 
 
 /* =========================================
-   TEXT SCREENS (Grundwerte; Subpages überschreiben sie in sub.css)
+   TEXT SCREENS (Subpages)
    ========================================= */
 
 .textsec {
@@ -321,26 +331,31 @@ body.hud-intro.hud-r-on #hud-r {
 
 .textblock {
   width: 100%;
-  max-width: 620px;
+  max-width: 460px;
+  margin: 0 auto;
 
   font-family: "Times New Roman", Times, serif;
   font-size: 12px;
-  line-height: 1.25;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
 
   text-transform: uppercase;
   text-align: center;
-  text-wrap: balance;
 
-  filter: url(#xerox-s);
   opacity: var(--title-opacity);
 }
 
+/* unsichtbar, bis text.js die Zeilen gebaut und .ready gesetzt hat */
 .textblock:not(.ready) {
   visibility: hidden;
 }
 
 .textblock p {
-  margin: 0;
+  margin: 0 0 1.4em;
+}
+
+.textblock p:last-child {
+  margin-bottom: 0;
 }
 
 /* line animation */
@@ -635,7 +650,7 @@ body.bare .back {
 }
 
 .sub-base.on {
-  opacity: 0.5;
+  opacity: 0.3;
 }
 
 /* SHOW TRACES: das Bild selbst verschwindet, nur das Burn-in (.sub-burn) bleibt */
@@ -676,6 +691,30 @@ body.bare .sub-base.on {
 
 
 /* =========================================
+   SEITENWECHSEL (View Transitions)
+   ========================================= */
+
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-group(root) {
+  animation-duration: 1800ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* waehrend des Farbwechsels: schweren Verzerrungsfilter abschalten, damit es fluessig bleibt */
+html.sub-wiping #wear {
+  filter: none;
+}
+
+
+/* =========================================
    MOBILE (bis 700px)
    ========================================= */
 
@@ -699,6 +738,12 @@ body.bare .sub-base.on {
   .hero-index .index-insert {
     font-size: clamp(11px, 3.2vw, 14px);
     letter-spacing: 0.08em;
+  }
+
+  /* Subpage-Text */
+
+  .textblock {
+    max-width: 86vw;
   }
 
   /* HUD: auf jeder Seite gleich, kurze Namen statt langer */

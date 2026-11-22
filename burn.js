@@ -3,6 +3,8 @@
 // - Cursor burns live on the SCREEN (same position on every page).
 // - Text burns (ghosts) live on the SCREEN too: a text you burned in on one page is
 //   still visible as a ghost on every other page (a snapshot of it is stored).
+// - Clicking / resting on TEXT burns in the WORD (or the whole LINE, see BURN_UNIT) under the
+//   cursor, not the whole paragraph. Clicking next to the text only burns in the cursor.
 // - The wear value is shared by all pages.
 // - Your own traces are kept in this browser forever (localStorage).
 // - Traces of ALL visitors are shared through the small server (server.js, /api/visits),
@@ -14,10 +16,10 @@
 
   var S = 6; // cell size in px
   var HALO = 10; // soft glow around a cursor burn
-  var GHOST_K = 0.4; // how strongly a text ghost shows (opacity = wear * this): big type
-  var GHOST_K_SMALL = 0.9; // ... and small type (under 28 px), lower = fainter (1 = can burn in fully)
-  var SMALL_CURVE = 0.6; // small type only: below 1 = it shows up earlier (less use needed), 1 = linear
+  var GHOST_K = 0.7; // how strongly a text ghost shows (opacity = wear * this): big type
+  var GHOST_K_SMALL = 0.7; // ... and small type (under 28 px), lower = fainter
   var HALO_ALPHA = 0.3; // strongest the glow can get (lower = less "highlighted box" look)
+  var BURN_UNIT = "word"; // what burns in when you click / rest on text: "word" or "line"
   var PUSH_MS = 1000; // how often your traces are sent to the server
   var PULL_MS = 1000; // how often the traces of the others are fetched (= how "live" it is)
   var STILL_MS = 400; // mouse must rest this long before it starts to burn in
@@ -30,7 +32,7 @@
   var WEAR_AT = 1000; // speed of the WEAR % counter only: higher = slower
   var DRAG_W = 0.08; // touch: weight of one drag sample (every 80 ms) in clicks
   var CLICK_W = 1,
-    HOVER_W = 0.15; // a click = 1 unit, 1 s of resting = 0.15 units
+    HOVER_W = 0.25; // a click = 1 unit, 1 s of resting = 0.15 units
   // elements that can burn in: headings, paragraphs, quotes, list links, .text, or anything with data-burn
   var SEL =
     window.WT_SEL ||
@@ -127,6 +129,11 @@
 
   var cv = document.getElementById("wear");
   var ctx = cv.getContext("2d");
+
+  // no text selection (double / triple click would mark text instead of burning it in)
+  document.addEventListener("selectstart", function (e) {
+    e.preventDefault();
+  });
 
   // ---- state ----
   // me.pos / others.pos: where on the SCREEN an element was when it was last used
@@ -299,6 +306,24 @@
     };
   }
 
+  // snapshot of ONE word or line: the look of its element, but without padding and with the line
+  // height of the measured box, so the ghost sits exactly where the word was
+  function snapOfUnit(el, u) {
+    var cs = getComputedStyle(el),
+      look = {},
+      i;
+    for (i = 0; i < LOOK.length; i++) look[LOOK[i]] = cs.getPropertyValue(LOOK[i]);
+    look["padding-top"] = "0px";
+    look["padding-right"] = "0px";
+    look["padding-bottom"] = "0px";
+    look["padding-left"] = "0px";
+    look["text-indent"] = "0px";
+    look["text-align"] = "left";
+    look["list-style-type"] = "none";
+    look["line-height"] = Math.ceil(u.rect.height) + "px";
+    return { tag: "div", txt: u.txt, look: look, canvas: false };
+  }
+
   // A graph (canvas) cannot be cloned like text, so we keep a small picture of it,
   // painted in the burn colour. It stays in this browser only (not sent to the server).
   var shotTaken = {};
@@ -322,7 +347,109 @@
     }
   }
 
+  // ---- what is under the cursor? ----
+  // Text: the WORD (or the LINE) exactly under the point. Its key is the key of the element plus
+  //       the text node and the start of the word / line ("e:/page@3#0:12").
+  // Graph (canvas): the whole canvas.
+  // Anything else (also the empty space next to a text): nothing, then only the cursor burns in.
+  var WORD_RE = /\S+/g;
+  function unitAt(x, y) {
+    var t = document.elementFromPoint(x, y);
+    var h = hit(t);
+    if (!h) return null;
+    if (h.el.tagName === "CANVAS") return h;
+
+    var walker = document.createTreeWalker(h.el, NodeFilter.SHOW_TEXT, null),
+      rg = document.createRange(),
+      ni = -1,
+      node,
+      m,
+      j,
+      rs,
+      r;
+    while ((node = walker.nextNode())) {
+      ni++;
+      var s = node.nodeValue;
+      if (!s || !/\S/.test(s)) continue;
+      WORD_RE.lastIndex = 0;
+      while ((m = WORD_RE.exec(s))) {
+        rg.setStart(node, m.index);
+        rg.setEnd(node, m.index + m[0].length);
+        rs = rg.getClientRects();
+        for (j = 0; j < rs.length; j++) {
+          r = rs[j];
+          if (x >= r.left - 1 && x <= r.right + 1 && y >= r.top - 1 && y <= r.bottom + 1) {
+            if (BURN_UNIT !== "line") {
+              return {
+                el: h.el,
+                key: h.key + "#" + ni + ":" + m.index,
+                unit: { txt: m[0], rect: r },
+              };
+            }
+            return lineOf(h, node, ni, s, r);
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  // the whole line of the text node that the word r belongs to
+  function lineOf(h, node, ni, s, hitRect) {
+    var rg = document.createRange(),
+      re = /\S+/g,
+      m,
+      rs,
+      r,
+      start = -1,
+      end = -1,
+      l = 1e9,
+      t = 1e9,
+      rr = -1e9,
+      b = -1e9;
+    while ((m = re.exec(s))) {
+      rg.setStart(node, m.index);
+      rg.setEnd(node, m.index + m[0].length);
+      rs = rg.getClientRects();
+      if (!rs.length) continue;
+      r = rs[0];
+      if (Math.abs(r.top - hitRect.top) > 2) continue;
+      if (start < 0) start = m.index;
+      end = m.index + m[0].length;
+      l = Math.min(l, r.left);
+      t = Math.min(t, r.top);
+      rr = Math.max(rr, r.right);
+      b = Math.max(b, r.bottom);
+    }
+    if (start < 0) return null;
+    return {
+      el: h.el,
+      key: h.key + "#" + ni + ":" + start,
+      unit: {
+        txt: s.slice(start, end),
+        rect: { left: l, top: t, width: rr - l, height: b - t },
+      },
+    };
+  }
+
   function mark(h) {
+    if (h.unit) {
+      var u = h.unit,
+        ua = [
+          Math.round(u.rect.left),
+          Math.round(u.rect.top),
+          Math.ceil(u.rect.width) + 2, // a little extra so the ghost never wraps differently
+          Math.ceil(u.rect.height),
+        ];
+      me.pos[h.key] = ua;
+      delta.pos[h.key] = ua;
+      if (!me.snap[h.key]) {
+        var us = snapOfUnit(h.el, u);
+        me.snap[h.key] = us;
+        delta.snap[h.key] = us;
+      }
+      return;
+    }
     var r = h.el.getBoundingClientRect();
     var arr = [
       Math.round(r.left),
@@ -351,6 +478,16 @@
     }
   }
 
+  // burn `w` into the word / line / graph under the point (kind: "clicks" or "hover")
+  function burnAt(x, y, w, kind) {
+    var u = unitAt(x, y);
+    if (!u) return null;
+    add(me[kind], u.key, w);
+    add(delta[kind], u.key, w);
+    mark(u);
+    return u;
+  }
+
   document.addEventListener(
     "pointerdown",
     function (e) {
@@ -360,14 +497,9 @@
       add(delta.clicks, c, 1);
       add(me.clicks, PK, 1);
       add(delta.clicks, PK, 1);
-      var h = hit(e.target);
+      var u = burnAt(e.clientX, e.clientY, 1, "clicks");
       lastHitInfo =
-        e.target.tagName + " -> " + (h ? h.key : "NO MATCH (not a burn element)");
-      if (h) {
-        add(me.clicks, h.key, 1);
-        add(delta.clicks, h.key, 1);
-        mark(h);
-      }
+        e.target.tagName + " -> " + (u ? u.key : "no text under the cursor (only the cursor burns)");
       dirty = true;
       redraw = true;
       showHud();
@@ -412,7 +544,7 @@
   // ---- touch: the finger is the cursor ----
   // tap = click (pointerdown), holding still = like a resting mouse (10 s burst included),
   // dragging = burns along the path of the finger. A ghost keeps the position where the
-  // finger FIRST met the element, so it does not slide around while the page scrolls.
+  // finger FIRST met the word, so it does not slide around while the page scrolls.
   var dragSeen = {},
     lastDrag = 0;
   function fingerOf(e) {
@@ -455,13 +587,13 @@
     add(delta.clicks, curCell, DRAG_W);
     add(me.clicks, PK, DRAG_W);
     add(delta.clicks, PK, DRAG_W);
-    var h = hit(document.elementFromPoint(lx, ly));
-    if (h) {
-      add(me.clicks, h.key, DRAG_W);
-      add(delta.clicks, h.key, DRAG_W);
-      if (!dragSeen[h.key]) {
-        dragSeen[h.key] = 1;
-        mark(h);
+    var u = unitAt(lx, ly);
+    if (u) {
+      add(me.clicks, u.key, DRAG_W);
+      add(delta.clicks, u.key, DRAG_W);
+      if (!dragSeen[u.key]) {
+        dragSeen[u.key] = 1;
+        mark(u);
       }
     }
     dirty = true;
@@ -488,12 +620,7 @@
       add(delta.clicks, curCell, STILL_BURN);
       add(me.clicks, PK, STILL_BURN);
       add(delta.clicks, PK, STILL_BURN);
-      var bh = hit(document.elementFromPoint(lx, ly));
-      if (bh) {
-        add(me.clicks, bh.key, STILL_BURN);
-        add(delta.clicks, bh.key, STILL_BURN);
-        mark(bh);
-      }
+      burnAt(lx, ly, STILL_BURN, "clicks");
       dirty = true;
       redraw = true;
     }
@@ -503,12 +630,7 @@
     add(delta.hover, curCell, 0.1);
     add(me.hover, PK, 0.1);
     add(delta.hover, PK, 0.1);
-    var h = hit(document.elementFromPoint(lx, ly));
-    if (h) {
-      add(me.hover, h.key, 0.1);
-      add(delta.hover, h.key, 0.1);
-      mark(h);
-    }
+    burnAt(lx, ly, 0.1, "hover");
     dirty = true;
     redraw = true;
   }, 100);
@@ -613,7 +735,6 @@
 
   function place(c, pos, a) {
     var fs = parseFloat(c.style.fontSize) || 0;
-    var small = fs > 0 && fs < 28;
     c.style.cssText =
       c.style.cssText +
       ";position:absolute;margin:0;left:" +
@@ -625,7 +746,7 @@
       "px;height:" +
       pos[3] +
       "px;opacity:" +
-      Math.min(1, (small ? Math.pow(a, SMALL_CURVE) : a) * (c.tagName === "IMG" ? 0.8 : small ? GHOST_K_SMALL : GHOST_K));
+      Math.min(1, a * (c.tagName === "IMG" ? 0.8 : fs && fs < 28 ? GHOST_K_SMALL : GHOST_K));
 
     // sharper for small type: the blur grows with the font size, and only big type gets a glow
     // (a glow on small type fills the gaps between the letters and looks like a highlighted box)
@@ -639,7 +760,7 @@
 
   // Burn-in: a copy of each worn element, drawn where it last was ON THE SCREEN.
   // 1) elements of THIS page: live copies (graphs: the stored picture)
-  // 2) elements burned in on OTHER pages: rebuilt from their stored snapshot
+  // 2) words / lines and elements burned in on OTHER pages: rebuilt from their stored snapshot
   // The ghosts are only rebuilt when something actually changed (no flicker).
   function drawGhosts() {
     var gh = document.getElementById("ghosts"),
@@ -1218,7 +1339,7 @@
       var l = elList(),
         gh = document.getElementById("ghosts"),
         out = [];
-      out.push("burn.js v4 | page key: " + PAGE);
+      out.push("burn.js v5 | page key: " + PAGE + " | unit: " + BURN_UNIT);
       out.push("net: " + net + " | user id: " + myId + " | others: " + others.visitors);
       out.push("burn elements found on this page: " + l.length);
       for (var i = 0; i < l.length && i < 8; i++) {
