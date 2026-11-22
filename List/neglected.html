@@ -10,6 +10,16 @@
     <meta name="color-scheme" content="only light" />
     <link rel="stylesheet" href="/style.css" />
     <style>
+
+
+      :root {
+    --bg: #4A4A4A;
+    --fg: #FFFFFF;
+    --fg-small: #FFFFFF;
+    --burn: #656565;
+  }
+
+
       .back {
         position: fixed;
         left: 14px;
@@ -22,32 +32,84 @@
         filter: blur(0.4px);
       }
 
-      /* ---- text block: second screen, centred column ---- */
+      /* =========================================
+         DESCRIPTION TEXT  (two blocks per sub-page)
+         =========================================
+         <section class="textsec"> is exactly one screen high and split into thirds:
+           - first  .textblock  -> sits in the UPPER third, centred
+           - second .textblock  -> sits in the LOWER third, centred
+         Both blocks are centred on the page, set in centred (Mittelachsen) type.
+
+         Width: 1200px at a 1920px screen, i.e. 62.5vw (scales with the screen).
+                On mobile (up to 700px) 90vw.
+                Change it per block with style="--w: 900px" on .textblock.
+
+         Line breaks are set in the text itself:
+
+           <br>            always a line break
+           <br class="m">  line break ONLY on mobile  (up to 700px wide)
+           <br class="d">  line break ONLY on desktop
+           data-manual     on <div class="textblock">: only your <br> count, the browser does
+                           NOT wrap lines by itself (every line stays exactly as you typed it)
+
+         Spacing of single words, typed directly into the text:
+
+           {2}             extra gap of 2em between two words      (1em = the font size)
+           {m:2} / {d:3}   extra gap only on mobile / only on desktop
+           *word*          word with wide letter spacing           (data-track="0.5" on .textblock sets how wide, default 0.35em)
+           *0.8:word*      the same with its own letter spacing (0.8em)
+           *two words*     works over several words as well
+
+         "Double word spacing" = {1} (one extra em), or {2} for even more.
+
+         Example:  Pristine {2} describes *something* {m:0}{d:2} that is in its original
+      */
+
       .textsec {
         min-height: 100vh;
         min-height: 100svh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 24px 0;
+        display: grid;
+        grid-template-rows: 1fr 1fr 1fr;
+        justify-items: center;
+        box-sizing: border-box;
+        padding: var(--edge, 14svh) 0; /* distance to the top / bottom edge */
         scroll-snap-align: start;
       }
+
       .textblock {
         width: 100%;
-        max-width: 1620px;
+        max-width: var(--w, 62.5vw); /* 1200 : 1920 */
         font-family: "Times New Roman", Times, serif;
-        font-size: 14px;
-        line-height: 1;
+        font-size: 12px;
+        line-height: 1.2;
         text-transform: uppercase;
         text-align: center; /* Mittelachsensatz */
-        text-wrap: balance; /* gleichmäßigere Zeilenlängen */
+        text-wrap: balance;
+        align-self: center;
         filter: none;
+        letter-spacing: 0.1em;
         opacity: var(--title-opacity);
-      }.textblock:not(.ready) {
-  visibility: hidden;
-}
+      }
+      .textblock.upper {
+        grid-row: 1;
+      }
+      .textblock.lower {
+        grid-row: 3;
+      }
+
+      .textblock .gap {
+        display: inline-block;
+        height: 0;
+      }
+
+      .textblock:not(.ready) {
+        visibility: hidden;
+      }
       .textblock p {
-        margin: 0; /* keine Leerzeile zwischen den Absätzen */
+        margin: 0 0 1.25em;
+      }
+      .textblock p:last-child {
+        margin-bottom: 0;
       }
 
       /* every line animates in on its own, one after another */
@@ -70,6 +132,18 @@
         ); /* speed of the line build-up */
       }
 
+      /* MOBILE: same size as the tracker line at the top (12px) */
+      @media (max-width: 700px) {
+        .textsec {
+          --edge: 12svh;
+        }
+        .textblock {
+          --w: 90vw;
+          font-size: 12px;
+          line-height: 1.3;
+        }
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .textblock .line {
           transition: none;
@@ -79,31 +153,58 @@
     </style>
   </head>
   <body>
-
-
     <a class="back" href="/">ESC</a>
 
     <div id="stage">
-<div class="hero-index sub-index">
-  <h1 class="index-item index-title">Neglected</h1>
-</div>
+      <div class="hero-index sub-index">
+        <h1 class="index-item index-title">Neglected</h1>
+      </div>
 
-      <!-- Textblock: Absätze hier ersetzen oder ergänzen -->
+      <!-- Two text blocks: first = upper third, second = lower third.
+           Replace the paragraphs; use <br>, {2} and *word* as described above. -->
       <section class="textsec" id="text">
-        <div class="textblock">
+        <div class="textblock upper" data-manual>
           <p>
             Neglected describes the condition of an object, material, or space
-            that has not received the care, attention, or maintenance needed to
-            preserve its original state. Over time, a lack of proper upkeep can
-            lead to visible signs of deterioration, such as accumulated dirt,
-            fading, discolouration, surface damage, or general wear. A neglected
-            object may appear aged, unkempt, or poorly maintained, often
-            reflecting a prolonged absence of cleaning, repair, or regular care.
-            Unlike natural ageing or wear caused by everyday use, neglect
-            suggests that the condition has worsened due to insufficient
-            attention or maintenance. It describes a state in which something
-            has gradually lost its original appearance, quality, or
-            functionality because it has not been adequately looked after.
+            that has not received sufficient care, attention, cleaning, or
+            maintenance over an extended period of time.<br />It refers to a
+            state in which the absence of regular upkeep has allowed dirt,
+            deterioration, or other forms of damage to accumulate, gradually
+            affecting the object's appearance, quality, and potentially its
+            functionality.<br />Common characteristics of neglect may include
+            accumulated dust and grime, stains, discolouration, faded surfaces,
+            peeling finishes, untreated damage, corrosion, or general signs of
+            deterioration.<br />Depending on the material and the surrounding
+            conditions, neglect can also lead to more substantial issues, such
+            as weakened structures, dried-out surfaces, mould, or the breakdown
+            of protective treatments.<br />Unlike natural ageing or ordinary
+            wear, which can occur through the passage of time and regular use,
+            neglect specifically suggests that an object has not been adequately
+            looked after.<br />It does not necessarily mean that the object is
+            beyond repair, but it indicates that its present condition may have
+            been affected by a prolonged lack of attention and maintenance.
+          </p>
+        </div>
+
+        <div class="textblock lower" data-manual>
+          <p>
+            Neglected metal reflects a prolonged absence of care, cleaning, or
+            maintenance, allowing its surface and protective qualities to
+            deteriorate over time.<br />Dust, dirt, moisture, and other
+            environmental residues may accumulate, while the original finish can
+            become dull, stained, or uneven.<br />Depending on the surrounding
+            conditions, oxidation and corrosion may develop and spread,
+            sometimes leaving visible deposits, rough textures, or areas of
+            discolouration.<br />Protective coatings may peel, deteriorate, or
+            disappear entirely, exposing the underlying metal to further
+            environmental damage. The surface can appear irregular and
+            unmaintained, with different stages of deterioration visible across
+            the material.<br />In more advanced cases, corrosion may extend
+            beyond the surface, affecting the strength and structural integrity
+            of the metal itself.<br />Neglect is reflected not simply in the
+            material's age, but in the gradual consequences of insufficient
+            attention.<br />The metal retains traces of its original form, yet
+            its appearance has been increasingly shaped by the absence of care.
           </p>
         </div>
       </section>
@@ -111,58 +212,158 @@
 
     <script src="/tracker.js"></script>
     <script src="/burn.js"></script>
-<script src="/sub.js"></script>
+    <script src="/sub.js"></script>
     <script>
       (function () {
         var sec = document.getElementById("text");
-        var block = sec.querySelector(".textblock");
-        var ps = Array.prototype.slice.call(block.querySelectorAll("p"));
+        var blocks = Array.prototype.slice.call(
+          sec.querySelectorAll(".textblock"),
+        );
+        var ps = Array.prototype.slice.call(
+          sec.querySelectorAll(".textblock p"),
+        );
         var orig = ps.map(function (p) {
           return p.innerHTML;
         });
+        var mq = window.matchMedia
+          ? window.matchMedia("(max-width: 700px)")
+          : { matches: false };
 
-        // Split every paragraph into the lines the browser actually shows
-        // (also lines created by <br>), wrap each line in its own span.
+        // <br class="m"> counts only on mobile, <br class="d"> only on desktop
+        function source(n) {
+          return orig[n]
+            .replace(
+              /<br\s+class=["']?m["']?\s*\/?>/gi,
+              mq.matches ? "<br>" : " ",
+            )
+            .replace(
+              /<br\s+class=["']?d["']?\s*\/?>/gi,
+              mq.matches ? " " : "<br>",
+            );
+        }
+
+        // words -> tokens:  {t, track}  a word (track = extra letter spacing in em, 0 = normal)
+        //                   {gap}       an extra gap in em
+        // {2}  {m:2}  {d:3}  = gaps,   *word*  *0.8:word*  *two words*  = wide letter spacing
+        var TRACK = 0.35; // set per block from data-track
+        var tr = 0; // letter spacing that is currently "open" (a *...* can run over several lines)
+        function parse(words) {
+          var out = [];
+          // {m:2}{d:3} written without a space in between = two separate gaps
+          var flat = [];
+          words.forEach(function (w) {
+            w.split(/(\{(?:[md]:)?\d*\.?\d+\})/).forEach(function (x) {
+              if (x) flat.push(x);
+            });
+          });
+          flat.forEach(function (w) {
+            var g = /^\{(?:(m|d):)?(\d*\.?\d+)\}$/.exec(w);
+            if (g) {
+              var on = !g[1] || (g[1] === "m") === !!mq.matches;
+              out.push({ gap: on ? parseFloat(g[2]) : 0 });
+              return;
+            }
+            // a star standing alone ( * word * ): switches the wide letter spacing on / off
+            if (w === "*") {
+              tr = tr ? 0 : TRACK;
+              return;
+            }
+            // opening star (may follow a bracket or quote): *word   *0.8:word
+            var open = /^([(\["'\u201C\u2018]*)\*(?:(\d*\.?\d+):)?/.exec(w);
+            if (open) {
+              tr = open[2] ? parseFloat(open[2]) : TRACK;
+              w = open[1] + w.slice(open[0].length);
+            }
+            // closing star (may be followed by punctuation): word*   word*,   word*.
+            var close = /\*([.,;:!?)\]"'\u201D\u2019]*)$/.exec(w);
+            if (close) w = w.slice(0, close.index) + close[1];
+            if (w) out.push({ t: w, track: tr });
+            if (close) tr = 0;
+          });
+          return out;
+        }
+
+        function make(tok) {
+          var el = document.createElement("span");
+          if (tok.gap !== undefined) {
+            el.className = "gap";
+            el.style.width = tok.gap + "em";
+          } else {
+            el.textContent = tok.t;
+            if (tok.track) el.style.letterSpacing = tok.track + "em";
+          }
+          return el;
+        }
+
+        // Split every paragraph into lines and wrap each line in its own span.
+        // Normal mode: the lines the browser shows (plus your <br>).
+        // data-manual:  exactly the lines you typed (every <br> = one line, no automatic wrapping).
+        // The line counter runs on across both blocks, so the second block builds up after the first.
         function split() {
           var idx = 0;
           var tmp = document.createElement("div");
           ps.forEach(function (p, n) {
-            var segs = orig[n].split(/<br\s*\/?>/i).map(function (h) {
-              tmp.innerHTML = h;
-              return tmp.textContent.trim().split(/\s+/).filter(Boolean);
-            });
-            p.textContent = "";
-            var words = [];
-            segs.forEach(function (sg, si) {
-              if (si) p.appendChild(document.createElement("br"));
-              sg.forEach(function (w, wi) {
-                if (wi) p.appendChild(document.createTextNode(" "));
-                var s = document.createElement("span");
-                s.textContent = w;
-                p.appendChild(s);
-                words.push(s);
+            var block = p.closest(".textblock");
+            var manual = block.hasAttribute("data-manual");
+            TRACK = parseFloat(block.getAttribute("data-track")) || 0.35;
+            tr = 0;
+            var segs = source(n)
+              .split(/<br\s*\/?>/i)
+              .map(function (h) {
+                tmp.innerHTML = h;
+                return parse(
+                  tmp.textContent.trim().split(/\s+/).filter(Boolean),
+                );
               });
-            });
-            var lines = [],
-              top = null;
-            words.forEach(function (s) {
-              var t = s.offsetTop;
-              if (top === null || Math.abs(t - top) > 2) {
-                lines.push([]);
-                top = t;
-              }
-              lines[lines.length - 1].push(s.textContent);
-            });
+            var lines = [];
+            if (manual) {
+              lines = segs.filter(function (sg) {
+                return sg.length;
+              });
+            } else {
+              p.textContent = "";
+              var items = [];
+              segs.forEach(function (sg, si) {
+                if (si) p.appendChild(document.createElement("br"));
+                sg.forEach(function (tok, wi) {
+                  if (wi) p.appendChild(document.createTextNode(" "));
+                  var el = make(tok);
+                  p.appendChild(el);
+                  items.push({ tok: tok, el: el });
+                });
+              });
+              var top = null;
+              items.forEach(function (it) {
+                var t = it.el.offsetTop;
+                if (top === null || Math.abs(t - top) > 2) {
+                  lines.push([]);
+                  top = t;
+                }
+                lines[lines.length - 1].push(it.tok);
+              });
+            }
             p.textContent = "";
-            lines.forEach(function (ws) {
+            lines.forEach(function (toks) {
               var l = document.createElement("span");
               l.className = "line";
               l.style.setProperty("--i", idx++);
-              l.textContent = ws.join(" ");
+              toks.forEach(function (tok, k) {
+                if (k) l.appendChild(document.createTextNode(" "));
+                if (tok.gap !== undefined || tok.track) {
+                  var el = make(tok);
+                  // only at the END of a line: cut the trailing letter spacing so the line stays centred.
+                  // Inside a line it stays, so the space after a wide word is visible.
+                  if (tok.track && k === toks.length - 1)
+                    el.style.marginRight = -tok.track + "em";
+                  l.appendChild(el);
+                } else l.appendChild(document.createTextNode(tok.t));
+              });
               p.appendChild(l);
             });
           });
-          block.classList.add("ready");
+          blocks.forEach(function (b) {
+            b.classList.add("ready");
+          });
         }
 
         function start() {

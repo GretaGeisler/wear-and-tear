@@ -1,6 +1,8 @@
-/* viewer.js v4 – Burn-In-Archiv als erste Ansicht von stats.html.
+/* viewer.js v6 – Burn-In-Archiv als erste Ansicht von stats.html.
    Einbinden: <script src="/viewer.js"></script> vor </body>, NACH burn.js, tracker.js und dem Inline-Skript.
-   Jeder Screenshot = der echte Zustand von #wear (Cursor-Burns) und #ghosts (Text-Burns). */
+   Jeder Screenshot = der echte Zustand von #wear (Cursor-Burns) und #ghosts (Text-Burns).
+   - Umschalter Stats / Subpages (Overview oben links UND in der Tabelle "State archive")
+   - Subpages werden im Hintergrund per unsichtbarem iframe fotografiert (BG-Block unten) */
 (function () {
   var C = {
     SNAP_MS: 30000,
@@ -155,12 +157,13 @@
     ".vs.t{left:0;top:0;width:100%;height:" + FRAME.depth + "px;transform-origin:50% 0;transform:rotateX(-90deg)}" +
     ".vs.b{left:0;bottom:0;width:100%;height:" + FRAME.depth + "px;transform-origin:50% 100%;transform:rotateX(90deg)}" +
     ".vf img{display:block;width:100%;height:100%;-webkit-user-drag:none;pointer-events:none}" +
-    ".vt{position:absolute;left:8px;bottom:6px;font:300 10px var(--mono);letter-spacing:var(--mono-spacing);color:var(--fg-small);opacity:.6}" +
+    ".vt{position:absolute;left:8px;bottom:6px;font:300 10px var(--mono);letter-spacing:var(--mono-spacing);color:#888;opacity:.8}" +
     ".vbar{position:absolute;display:flex;gap:20px;z-index:4;font:300 12px/1 var(--mono);letter-spacing:var(--mono-spacing);text-transform:uppercase;color:var(--fg-small)}" +
     ".vp,.vb{background:none;border:0;border-radius:0;padding:0;margin:0;color:inherit;font:inherit;letter-spacing:inherit;text-transform:uppercase;white-space:nowrap;filter:none}" +
     "#vinfo,#vinfo *{filter:none!important;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}" +
     ".vp b{font-weight:300}.vb{cursor:pointer;opacity:.55}.vb.on{opacity:1}" +
     "#vinfo{left:14px;top:" + THEME.headTop + "px;flex-direction:column;align-items:flex-start;gap:6px}" +
+    "#vsrc{display:flex;gap:14px;flex-wrap:wrap;max-width:60vw}" +
     "#vpan{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:" + (THEME.headData - 6) + "px}" +
     "#stage .legend{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:" + THEME.legendGap + "px!important;margin:0!important;width:100%;text-align:left!important}" +
     "#stage .legend button .dot{display:none!important}" +
@@ -202,6 +205,9 @@
     "#vmodes{position:fixed;left:0;right:0;width:auto;transform:none;justify-content:center;pointer-events:none;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);z-index:2100;filter:none;-webkit-backdrop-filter:none;backdrop-filter:none}" +
     "#vmodes .vb{pointer-events:auto;filter:none!important;-webkit-font-smoothing:antialiased;touch-action:manipulation;-webkit-tap-highlight-color:transparent;padding:10px 8px;margin:-10px -8px;line-height:1}" +
     "#vmodes .vb .s{display:none}" +
+    /* State archive: Quellen-Auswahl (Stats / Subpages) anstelle des Untertitels */
+    "#arcsrc{display:flex!important;flex-wrap:wrap;gap:6px 14px;margin:0 0 " + (THEME.textSize * 1.25) + "px!important}" +
+    "#arcsrc .vb{cursor:pointer;opacity:.55;padding:2px 0!important;white-space:nowrap}#arcsrc .vb.on{opacity:1}" +
     /* State archive: Datum + Uhrzeit */
     "#arcsec .tt{margin-left:.4em;white-space:nowrap}#arcsec .dd{white-space:nowrap}" +
     /* State archive: Einblenden beim Scrollen (Überschrift, Untertitel, Tabellenkopf, Zeilen gestaffelt) */
@@ -253,7 +259,7 @@
   v.id = "viewer";
   v.innerHTML =
     '<div id="vw"><div id="vwo"></div></div>' +
-    '<div class="vbar" id="vinfo"><div class="vp">Next screenshot <b id="vcd">30</b> s</div><div class="vp">States <b id="vcnt">0</b></div><div id="vpan"></div></div>';
+    '<div class="vbar" id="vinfo"><div class="vp">Next screenshot <b id="vcd">30</b> s</div><div class="vp">States <b id="vcnt">0</b></div><div id="vsrc"></div><div id="vpan"></div></div>';
   stage.insertBefore(v, stage.firstChild);
   var modes = document.createElement("div");
   modes.className = "vbar";
@@ -270,7 +276,7 @@
     arcSec.className = "dsec";
     arcSec.id = "arcsec";
     arcSec.innerHTML =
-      '<h2>State archive</h2><p class="sub">One screenshot every 30 seconds</p><table><thead><tr><th class="no">No.</th><th class="me">Date / time</th><th>Wear</th><th>Ghosts</th><th>Energy</th><th>Stored</th><th>CO₂</th></tr></thead><tbody id="varc"></tbody></table>';
+      '<h2>State archive</h2><p class="sub" id="arcsrc"></p><table><thead><tr><th class="no">No.</th><th class="me">Date / time</th><th>Wear</th><th>Ghosts</th><th>Energy</th><th>Stored</th><th>CO₂</th></tr></thead><tbody id="varc"></tbody></table>';
     var tb = document.getElementById("tblsec");
     if (tb && tb.parentNode) tb.parentNode.insertBefore(arcSec, tb);
     else wrap.appendChild(arcSec);
@@ -330,6 +336,7 @@
   }
 
   function snap() {
+    if (SRC !== "stats") return; /* beim Betrachten einer Subpage nicht ins Stats-Archiv schreiben */
     var sx = C.W / innerWidth, H = Math.min(3200, Math.max(240, Math.round(innerHeight * sx)));
     var c = mk(C.W, H), x = c.getContext("2d");
     var wear = document.getElementById("wear");
@@ -347,6 +354,7 @@
 
   /* ---------- States ---------- */
   var states = [], pos = 0, target = 0, shown = -1, next = Date.now() + C.SNAP_MS, G = 100, BW = 400, moved = false, down = null, snapT, inView = true, popped = null;
+  var SRC = "stats"; /* aktuelle Quelle: "stats" oder Name einer Subpage */
 
   function dim(o) { var w = BW, h = BW / o.ar; o.el.style.cssText += ";width:" + w + "px;height:" + h + "px;left:" + (-w / 2) + "px;top:" + (-h / 2) + "px"; }
   function add(o) {
@@ -371,6 +379,7 @@
     shown = -1; document.getElementById("vcnt").textContent = states.length; arc();
   }
   function save() {
+    if (SRC !== "stats") return;
     var a = states.map(function (s) { return { ts: s.ts, ar: s.ar, img: s.img, cov: s.cov, wear: s.wear, gh: s.gh, wh: s.wh, co2: s.co2, kb: s.kb, st: s.st }; });
     /* localStorage ist klein (~5 MB): bei hoher Auflösung so viele neueste Frames behalten, wie hineinpassen */
     for (var n = a.length; n > 0; n = Math.floor(n * 0.7) || (n > 1 ? 1 : 0)) {
@@ -401,11 +410,13 @@
   function panel() {
     var i = Math.round(clampN(pos)); if (i === shown || !states[i]) return; shown = i;
     var s = states[i];
-    document.getElementById("vpan").innerHTML = [
+    var rows = [
       ["State", "#" + (states.length - i) + " / " + states.length], ["Date", fd(s.ts) + " " + ft(s.ts)],
       ["Wear", nf(s.wear, 2) + " %"], ["Burn-in", nf(s.cov, 1) + " %"], ["Ghosts", nf(s.gh, 0)],
       ["Power", nf(s.wh, 3) + " Wh"], ["Data", nf(s.kb, 1) + " KB"], ["Stored", nf(s.st, 1) + " KB"], ["CO₂", nf(s.co2, 3) + " g"]
-    ].map(function (r) { return '<div class="vp">' + r[0] + " <b>" + r[1] + "</b></div>"; }).join("");
+    ];
+    if (s.tier) rows.splice(1, 0, ["Level", s.tier]); /* Decay-Stufe (nur bei Subpage-States) */
+    document.getElementById("vpan").innerHTML = rows.map(function (r) { return '<div class="vp">' + r[0] + " <b>" + r[1] + "</b></div>"; }).join("");
   }
   function arc() {
     var b = document.getElementById("varc"); if (!b) return;
@@ -413,6 +424,62 @@
       return '<tr style="--i:' + i + '"><td class="no">' + (states.length - i) + '</td><td class="me"><span class="dd">' + fd(s.ts) + '</span> <span class="tt">' + ft(s.ts) + "</span></td><td>" + nf(s.wear, 2) + " %</td><td>" + nf(s.gh, 0) + "</td><td>" + nf(s.wh, 3) + " Wh</td><td>" + nf(s.st, 1) + " KB</td><td>" + nf(s.co2, 3) + " g</td></tr>";
     }).join("");
   }
+
+  /* ---------- Quelle umschalten: Stats oder eine Subpage (Overview + State archive) ---------- */
+  function sources() {
+    var out = [{ id: "stats", label: "Stats", key: C.KEY }];
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (!k || k.indexOf("wt_sub_") !== 0) continue;
+      var lab = k.slice(7);
+      try { lab = JSON.parse(localStorage.getItem(k))[0].label || lab; } catch (e) {}
+      out.push({ id: k.slice(7), label: lab, key: k });
+    }
+    return out;
+  }
+  function drawSrc() {
+    var h = sources().map(function (s) {
+      return '<button type="button" class="vb' + (s.id === SRC ? " on" : "") + '" data-s="' + s.id + '">' + s.label + "</button>";
+    }).join("");
+    document.getElementById("vsrc").innerHTML = h;
+    var a = document.getElementById("arcsrc");
+    if (a) a.innerHTML = h;
+  }
+  function loadSource(id) {
+    var s = sources().filter(function (q) { return q.id === id; })[0];
+    if (!s) return;
+    SRC = id;
+    states.forEach(function (o) { o.el.remove(); });
+    states.length = 0; popped = null; shown = -1;
+    var arr = [];
+    try { arr = JSON.parse(localStorage.getItem(s.key) || "[]"); } catch (e) {}
+    arr.slice().reverse().forEach(add);
+    pos = target = 0;
+    document.getElementById("vcnt").textContent = states.length;
+    drawSrc();
+    arc();
+  }
+  /* neue Frames einer Subpage übernehmen (z. B. wenn der Hintergrund-iframe oder ein anderer Tab gespeichert hat) */
+  function refreshSrc() {
+    drawSrc();
+    if (SRC === "stats") return;
+    var s = sources().filter(function (q) { return q.id === SRC; })[0];
+    if (!s) return;
+    var arr = [];
+    try { arr = JSON.parse(localStorage.getItem(s.key) || "[]"); } catch (e) {}
+    if (arr.length && (!states.length || arr[0].ts !== states[0].ts)) loadSource(SRC);
+  }
+  function onSrcClick(e) {
+    var b = e.target.closest ? e.target.closest(".vb") : null;
+    if (b) loadSource(b.dataset.s);
+  }
+  document.getElementById("vsrc").addEventListener("click", onSrcClick);
+  /* pointerdown im Viewer darf den Klick auf die Buttons nicht als Drag werten */
+  document.getElementById("vsrc").addEventListener("pointerdown", function (e) { e.stopPropagation(); });
+  var arcSrcEl = document.getElementById("arcsrc");
+  if (arcSrcEl) arcSrcEl.addEventListener("click", onSrcClick);
+  addEventListener("storage", function (e) { if (!e.key || e.key.indexOf("wt_sub_") === 0) refreshSrc(); });
+  drawSrc();
 
   /* ---------- Navigation ---------- */
   var settle = function () { clearTimeout(snapT); snapT = setTimeout(function () { target = Math.round(target); }, 180); };
@@ -738,6 +805,59 @@
       for (var i = 0; i < ms.length; i++) if (!v.contains(ms[i].target)) { decorateSoon(); return; }
     }).observe(stage, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "aria-pressed", "aria-checked", "style"] });
 
+  /* ---------- Subpages im Hintergrund fotografieren (unsichtbarer iframe, solange diese Seite sichtbar offen ist) ---------- */
+  var BG = {
+    on: true,
+    pages: ["pristine", "settled", "patina", "worn", "weathered", "neglected", "defective"],
+    ext: ".html",       /* "" falls deine URLs ohne .html laufen */
+    every: 120000,      /* ms zwischen zwei Durchläufen (alle Seiten nacheinander, ca. 7 s pro Seite) */
+    timeout: 20000      /* ms, danach wird der iframe auf jeden Fall entfernt */
+  };
+  var bgBusy = false;
+  function bgOne(slug, done) {
+    var url = new URL(slug + BG.ext, location.href).href;
+    fetch(url, { method: "HEAD", cache: "no-store" }).then(function (r) {
+      if (!r.ok) { console.warn("[viewer] Subpage nicht gefunden:", url, r.status); done(); return; }
+      var f = document.createElement("iframe"), fin = false, tm;
+      function end() {
+        if (fin) return; fin = true;
+        clearTimeout(tm); removeEventListener("message", onMsg);
+        f.remove();
+        refreshSrc();
+        done();
+      }
+      function onMsg(e) {
+        if (e.origin === location.origin && e.data && e.data.type === "wt_snap_done" && e.data.page === slug) end();
+      }
+      addEventListener("message", onMsg);
+      f.setAttribute("aria-hidden", "true"); f.tabIndex = -1;
+      f.style.cssText = "position:fixed;left:-99999px;top:0;width:" + innerWidth + "px;height:" + innerHeight + "px;border:0;opacity:0;pointer-events:none";
+      f.onload = function () { /* Subpage ohne subsnap.js: sofort überspringen statt 20 s zu warten */
+        try {
+          if (!f.contentDocument.querySelector('script[src*="subsnap"]')) {
+            console.warn("[viewer] subsnap.js fehlt in", url);
+            end();
+          }
+        } catch (e) {}
+      };
+      f.src = url + "?snap=1";
+      document.body.appendChild(f);
+      tm = setTimeout(end, BG.timeout);
+    }).catch(function () { done(); });
+  }
+  function bgRun() {
+    if (!BG.on || bgBusy || document.hidden) return;
+    bgBusy = true;
+    var q = BG.pages.slice();
+    (function nextPage() {
+      var s = q.shift();
+      if (!s) { bgBusy = false; return; }
+      bgOne(s, nextPage);
+    })();
+  }
+  setTimeout(bgRun, 4000);
+  setInterval(bgRun, BG.every);
+
   /* ---------- Start ---------- */
   var saved = [];
   try { saved = JSON.parse(localStorage.getItem(C.KEY) || "[]"); } catch (e) {}
@@ -750,7 +870,7 @@
   (function frame() {
     pos += (target - pos) * .09; if (Math.abs(target - pos) < .0005) pos = target;
     layout(); panel();
-    document.getElementById("vcd").textContent = Math.max(0, Math.ceil((next - Date.now()) / 1000));
+    document.getElementById("vcd").textContent = SRC === "stats" ? Math.max(0, Math.ceil((next - Date.now()) / 1000)) : "–";
     requestAnimationFrame(frame);
   })();
 })();

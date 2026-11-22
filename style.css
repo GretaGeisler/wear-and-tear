@@ -125,6 +125,8 @@ h1,
   pointer-events: none;
   z-index: 5;
   filter: blur(1px) url(#rough);
+  opacity: 0.4; /* 1 = wie bisher, 0 = unsichtbar */
+
 }
 
 /* ghosts */
@@ -135,6 +137,8 @@ h1,
   pointer-events: none;
   z-index: 4;
   overflow: hidden;
+  opacity: 0.4;
+
 }
 
 #ghosts,
@@ -667,7 +671,7 @@ body.hud-intro.hud-r-on #hud-r {
 .sub-img {
   --w: min(700px, 94vw, 141vh); /* picture width: 700 x 467 px (3:2) - change 700px to resize */
   --w: min(700px, 94vw, 141svh);
-  --sat: 0.4; /* colour saturation (1 = original, lower = greyer) */
+  --sat: 0.1; /* colour saturation (1 = original, lower = greyer) */
   --con: 1.6; /* contrast (1 = original, higher = harder) */
   --h: calc(var(--w) * 2 / 3);
 
@@ -707,6 +711,7 @@ body.bare .sub-base.on {
   z-index: 5; /* same level as the cursor burns (#wear) but later in the page, so it lies on top of them and of the text ghosts */
   mix-blend-mode: screen;
   transition: opacity 1.5s ease;
+  filter: opacity(0.4);
 }
 
 .sub-frame {

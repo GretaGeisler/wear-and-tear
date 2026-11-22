@@ -10,6 +10,14 @@
     <meta name="color-scheme" content="only light" />
     <link rel="stylesheet" href="/style.css" />
     <style>
+
+     :root {
+    --bg: #000000;
+    --fg: #ffffff;
+    --fg-small: #ffffff;
+  }
+
+
       /* ================= PAGE ================= */
       #stage {
         --tw: min(100%, 1000px); /* shared width of table and metrics */
@@ -33,7 +41,7 @@
 
       /* title: ALL CAPS, 48px */
       h1 {
-        font-size: 48px;
+        font-size: 12px;
         text-transform: uppercase;
       }
 
@@ -336,8 +344,6 @@
     </style>
   </head>
   <body>
-    <div id="crt"></div>
-    <div id="grain"></div>
 
     <a class="back" href="/">ESC</a>
 
@@ -421,7 +427,6 @@
     <script>
       window.WT_VIEWER = true;
     </script>
-    <script src="/grain.js"></script>
     <script src="/tracker.js"></script>
     <script src="/burn.js"></script>
     <script>

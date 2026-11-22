@@ -12,20 +12,20 @@
   "use strict";
 
   var S = 6; // cell size in px
-  var HALO = 14; // soft glow around a cursor burn
-  var GHOST_K = 1.6; // how strongly a text ghost shows (opacity = wear * this): big type
-  var GHOST_K_SMALL = 1.0; // ... and small type (under 28 px), lower = fainter
+  var HALO = 10; // soft glow around a cursor burn
+  var GHOST_K = 0.2; // how strongly a text ghost shows (opacity = wear * this): big type
+  var GHOST_K_SMALL = 0.3; // ... and small type (under 28 px), lower = fainter
   var HALO_ALPHA = 0.3; // strongest the glow can get (lower = less "highlighted box" look)
-  var PUSH_MS = 1500; // how often your traces are sent to the server
-  var PULL_MS = 2500; // how often the traces of the others are fetched (= how "live" it is)
+  var PUSH_MS = 1000; // how often your traces are sent to the server
+  var PULL_MS = 1000; // how often the traces of the others are fetched (= how "live" it is)
   var STILL_MS = 400; // mouse must rest this long before it starts to burn in
   var REST_PX = 8; // moving less than this many px still counts as "the same spot"
-  var STILL_BURN_MS = 10000; // resting this long on one spot burns it in at once ...
+  var STILL_BURN_MS = 8000; // resting this long on one spot burns it in at once ...
   var STILL_BURN = 6; // ... with the weight of this many clicks
   var IMG_STILL_MS = 2000; // the PICTURE of a sub-page starts to burn in after this much total stillness
   var IMG_AT = 25; // seconds of stillness (beyond the first 10) until the picture is ~90 % burnt in (higher = slower)
   var BURN_AT = 40; // speed of the burn-IN (ghosts, cursor trails): higher = slower
-  var WEAR_AT = 400; // speed of the WEAR % counter only: higher = slower
+  var WEAR_AT = 1000; // speed of the WEAR % counter only: higher = slower
   var DRAG_W = 0.08; // touch: weight of one drag sample (every 80 ms) in clicks
   var CLICK_W = 1,
     HOVER_W = 0.15; // a click = 1 unit, 1 s of resting = 0.15 units
