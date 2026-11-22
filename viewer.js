@@ -1,9 +1,10 @@
-/* viewer.js v7 – Burn-In-Archiv als erste Ansicht von stats.html.
+/* viewer.js v8 – Burn-In-Archiv als erste Ansicht von stats.html.
    Einbinden: <script src="/viewer.js"></script> vor </body>, NACH burn.js, tracker.js und dem Inline-Skript.
    Jeder Screenshot = der echte Zustand von #wear (Cursor-Burns) und #ghosts (Text-Burns).
    - Umschalter Stats / Subpages (Overview oben links UND in der Tabelle "State archive")
    - Subpages werden im Hintergrund per unsichtbarem iframe fotografiert (BG-Block unten)
-   - "Each metric" ist auf der Stats-Seite ausgeblendet (steht im Overlay der Headerzeile, overlay.js) */
+   - "Each metric" ist auf der Stats-Seite ausgeblendet (steht im Overlay der Headerzeile, overlay.js)
+   - v8: Handy: mehr Abstand Kategorien -> Graph, blassere Frames, Linie antippen + halten zeigt ihren Namen */
 (function () {
   var C = {
     SNAP_MS: 30000,
@@ -18,6 +19,7 @@
     /* Fläche (sichtbar, wo der Screenshot transparent ist) */
     backgroundColor: "87,79,85",   /* r,g,b */
     backgroundOpacity: 0.03,
+    mobBackgroundOpacity: 0.008,   /* Handy: Fläche der Frames (0 = ganz transparent) */
 
     /* Rahmen */
     borderColor: "47,39,35",       /* r,g,b */
@@ -69,6 +71,7 @@
     textSize: 12,                  /* px: Text + Überschriften unter dem Viewer (wie die Zeile oben) */
     legendGap: 2,                  /* px zwischen den Kategorien im Graph-Bereich */
     graphGap: 8,                   /* px zwischen Kategorienliste und Graph (kleiner = Graph sitzt höher) */
+    mobGraphGap: 28,               /* Handy: px zwischen Kategorienliste und Graph */
     metricCols: "210px 110px 340px 60px", /* (nicht mehr genutzt, Each metric hat jetzt Name über Wert + Prozent) */
     metricColGap: 12,              /* px zwischen den Spalten */
     metricRowPad: 0,               /* px oben/unten pro Zeile */
@@ -249,7 +252,9 @@
     "}" +
     /* Mobile: OVERVIEW -> OV, INDEX -> IN (echte Spans statt font-size:0-Trick, damit die Tippfläche nicht verschwindet) */
     "@media(max-width:700px){#vmodes .vb .l{display:none}#vmodes .vb .s{display:inline}}" +
-    "@media(max-width:700px){#vinfo{gap:4px}#vpan{gap:4px;margin-top:" + (THEME.headData - 4) + "px}}";
+    "@media(max-width:700px){#vinfo{gap:4px}#vpan{gap:4px;margin-top:" + (THEME.headData - 4) + "px}}" +
+    /* Mobile: Fläche der Frames viel blasser */
+    "@media(max-width:700px){.vf{background:rgba(" + FRAME.backgroundColor + "," + FRAME.mobBackgroundOpacity + ")}}";
   var el = document.createElement("style");
   el.textContent = css;
   document.head.appendChild(el);
@@ -558,6 +563,9 @@
     keepScroll: true,     /* Klick auf eine Kategorie darf die Seite nicht zu einem anderen Kapitel springen lassen */
     hoverLabel: true,     /* Hover über eine Kurve: [Kategorie] klebt klein am Cursor */
     hoverDist: 10,        /* px Abstand zur Kurve, ab dem das Label erscheint */
+    touchDist: 28,        /* Handy: px Abstand zur Kurve, ab dem sie beim Antippen erkannt wird */
+    holdDim: 0.2,         /* Handy, beim Halten: Deckkraft der anderen Kurven */
+    holdWidth: 2.2,       /* Handy, beim Halten: Strichstärke der gewählten Kurve */
     arrange: true,        /* Reihenfolge: Header, Baseline t0, "All values count from here", Kategorien, Graph */
     blockGap: 1           /* Leerzeilen zwischen diesen Blöcken */
   };
@@ -612,6 +620,9 @@
   }
   function sp(n, k, val) { if (n.style.getPropertyValue(k) !== val) n.style.setProperty(k, val, "important"); }
 
+  /* Handy-Erkennung (auch für den Abstand Kategorien -> Graph und die Umbenennung der Tabellenzeilen) */
+  var mqSmall = window.matchMedia ? window.matchMedia("(max-width:700px)") : { matches: false };
+
   function arrange(root) {
     var h = null, hs = root.querySelectorAll("h1,h2,h3,h4");
     for (var i = 0; i < hs.length; i++) if (/all metrics in one graph/i.test(hs[i].textContent)) { h = hs[i]; break; }
@@ -635,13 +646,12 @@
       if (!k || seen.indexOf(k) >= 0) return;
       seen.push(k);
       sp(k, "order", String(idx)); sp(k, "align-self", idx === 4 ? "stretch" : "flex-start");
-      if (idx >= 2) sp(k, "margin-top", idx === 4 ? THEME.graphGap + "px" : gap);
+      if (idx >= 2) sp(k, "margin-top", idx === 4 ? (mqSmall.matches ? THEME.mobGraphGap : THEME.graphGap) + "px" : gap);
     });
   }
 
   /* kürzere Namen in "All live measurements", damit alles auf dem Handy in eine Zeile passt */
   var RENAME = { "Decay level of the sub-pages": "Sub-pages decay", "Ghost copies (all pages)": "Ghost copies" };
-  var mqSmall = window.matchMedia ? window.matchMedia("(max-width:700px)") : { matches: false };
   function renameRows() {
     Array.prototype.forEach.call(document.querySelectorAll("#tbl td.me"), function (td) {
       var o = td.getAttribute("data-orig") || td.textContent.trim();
@@ -651,7 +661,7 @@
       if (td.textContent !== t) td.textContent = t;
     });
   }
-  if (mqSmall.addEventListener) mqSmall.addEventListener("change", renameRows);
+  if (mqSmall.addEventListener) mqSmall.addEventListener("change", function () { renameRows(); decorateSoon(); });
 
   /* "Each metric": Einheit in Klammern hinter dem Namen weglassen (steht schon beim Wert)
      + Pfeilrichtung für die Prozentzahl setzen (↗ bei Plus, ↘ bei Minus, nichts bei 0 %) */
@@ -736,7 +746,9 @@
     }
   })();
 
-  /* Hover über eine Kurve des großen Graphen: [Kategorie] am Cursor.
+  /* Hover (Maus) bzw. Halten (Finger) auf einer Kurve des großen Graphen: [Kategorie] am Cursor.
+     Beim Finger wird die Kurve zusätzlich hervorgehoben, die anderen werden blasser.
+     Sobald der Finger abgesetzt wird, ist alles wieder weg.
      Der Graph ist ein <canvas> ohne Objekte: wir protokollieren beim Zeichnen die Strecken jeder Kurve und ordnen sie ihrer Kategorie zu. */
   (function () {
     var cv = document.getElementById("combo");
@@ -745,6 +757,7 @@
     if (!cx || cx._vh) return;
     cx._vh = 1;
     var rec = { lines: [], ids: [], cur: null };
+    var hl = -1, touchOn = false; /* hl = hervorgehobene Kategorie (nur Finger), -1 = keine */
     var bp = cx.beginPath, mt = cx.moveTo, lt = cx.lineTo, st = cx.stroke, cr = cx.clearRect;
     var btns = function () { return document.querySelectorAll("#legend button"); };
     var nameOf = function (b) { return b.textContent.replace(/\[[^\]]*\]/, "").trim(); };
@@ -763,10 +776,18 @@
     cx.moveTo = function (x, y) { if (rec.cur) rec.cur.push([x, y]); return mt.apply(this, arguments); };
     cx.lineTo = function (x, y) { if (rec.cur) rec.cur.push([x, y]); return lt.apply(this, arguments); };
     cx.stroke = function () {
-      var grid = /,\s*0?\.18\)\s*$/.test(String(this.strokeStyle));
+      var grid = /,\s*0?\.18\)\s*$/.test(String(this.strokeStyle)), id;
       if (!grid && rec.cur) {
-        var id = rec.ids.shift();
+        id = rec.ids.shift();
         if (id !== undefined && rec.cur.length > 1) rec.lines.push({ id: id, pts: rec.cur });
+      }
+      if (!grid && hl >= 0 && id !== undefined) {
+        var a0 = this.globalAlpha, w0 = this.lineWidth, res;
+        this.globalAlpha = id === hl ? 1 : GRAPH.holdDim;
+        if (id === hl) this.lineWidth = GRAPH.holdWidth;
+        res = st.apply(this, arguments);
+        this.globalAlpha = a0; this.lineWidth = w0;
+        return res;
       }
       return st.apply(this, arguments);
     };
@@ -775,13 +796,15 @@
     tip.id = "vtip";
     document.body.appendChild(tip);
     var hide = function () { tip.style.display = "none"; };
+    var setHl = function (id) { if (hl === id) return; hl = id; if (cv._redraw) cv._redraw(); };
     var dseg = function (px, py, a, b) {
       var dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy, t = l ? ((px - a[0]) * dx + (py - a[1]) * dy) / l : 0;
       t = Math.max(0, Math.min(1, t));
       var qx = a[0] + t * dx - px, qy = a[1] + t * dy - py;
       return Math.sqrt(qx * qx + qy * qy);
     };
-    cv.addEventListener("pointermove", function (e) {
+    function probe(e) {
+      var touch = e.pointerType !== "mouse";
       var r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, best = 1e9, bid = -1;
       rec.lines.forEach(function (L) {
         for (var i = 1; i < L.pts.length; i++) {
@@ -790,15 +813,37 @@
         }
       });
       var b = bid >= 0 ? btns()[bid] : null;
-      if (!b || best > GRAPH.hoverDist) { hide(); return; }
+      if (!b || best > (touch ? GRAPH.touchDist : GRAPH.hoverDist)) { hide(); if (touch) setHl(-1); return; }
       tip.textContent = "[" + nameOf(b) + "]";
       tip.style.display = "block";
-      var w = tip.offsetWidth, left = e.clientX + 12;
-      if (left + w > innerWidth - 8) left = e.clientX - w - 12;
+      var w = tip.offsetWidth, left, top;
+      if (touch) { /* über dem Finger, damit es nicht verdeckt wird */
+        left = Math.max(8, Math.min(innerWidth - w - 8, e.clientX - w / 2));
+        top = e.clientY - 46;
+        if (top < 8) top = e.clientY + 34;
+        setHl(bid);
+      } else {
+        left = e.clientX + 12;
+        if (left + w > innerWidth - 8) left = e.clientX - w - 12;
+        top = e.clientY + 14;
+      }
       tip.style.left = left + "px";
-      tip.style.top = (e.clientY + 14) + "px";
-    });
-    cv.addEventListener("pointerleave", hide);
+      tip.style.top = top + "px";
+    }
+    function end(e) {
+      if (e.pointerType === "mouse") { hide(); return; }
+      touchOn = false; hide(); setHl(-1);
+    }
+
+    /* horizontal darf der Finger über den Graphen gleiten, senkrecht scrollt weiter die Seite
+       (dann kommt pointercancel und das Label verschwindet) */
+    cv.style.touchAction = "pan-y";
+    cv.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    cv.addEventListener("pointerdown", function (e) { if (e.pointerType === "mouse") return; touchOn = true; probe(e); });
+    cv.addEventListener("pointermove", function (e) { if (e.pointerType !== "mouse" && !touchOn) return; probe(e); });
+    cv.addEventListener("pointerup", end);
+    cv.addEventListener("pointercancel", end);
+    cv.addEventListener("pointerleave", end);
     addEventListener("scroll", hide, { passive: true });
   })();
 
