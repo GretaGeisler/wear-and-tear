@@ -235,6 +235,7 @@
         // words -> tokens:  {t, track}  a word (track = extra letter spacing in em, 0 = normal)
         //                   {gap}       an extra gap in em
         // {2}  {m:2}  {d:3}  = gaps,   *word*  *0.8:word*  *two words*  = wide letter spacing
+        var MOB_GAP = 0.5; // mobile: Lücken ohne m:/d: zählen nur so viel (0.5 = {2} wird zu 1em)
         var TRACK = 0.35; // set per block from data-track
         var tr = 0; // letter spacing that is currently "open" (a *...* can run over several lines)
         function parse(words) {
@@ -248,9 +249,12 @@
           });
           flat.forEach(function (w) {
             var g = /^\{(?:(m|d):)?(\d*\.?\d+)\}$/.exec(w);
-            if (g) {
+                        if (g) {
               var on = !g[1] || (g[1] === "m") === !!mq.matches;
-              out.push({ gap: on ? parseFloat(g[2]) : 0 });
+              var val = parseFloat(g[2]);
+              // normale Lücken {2} werden auf dem Handy halbiert; {m:..} / {d:..} bleiben, wie du sie schreibst
+              if (!g[1] && mq.matches) val *= MOB_GAP;
+              out.push({ gap: on ? val : 0 });
               return;
             }
             // a star standing alone ( * word * ): switches the wide letter spacing on / off
