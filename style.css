@@ -55,8 +55,7 @@ html {
   scroll-snap-type: y mandatory;
   scroll-behavior: auto;
   overscroll-behavior-y: none;
- overflow-x: hidden;
-  overflow-x: clip;
+overflow-x: clip;
   overscroll-behavior-x: none;
   touch-action: pan-y; /* nur senkrechtes Wischen, kein Pinch-Zoom, kein Doppeltipp-Zoom */
 }
@@ -74,10 +73,8 @@ body {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
-  overflow-x: hidden;
-  overflow-x: clip;
+ max-width: 100%;
   overscroll-behavior-x: none;
-  touch-action: pan-y;
 }
 
 

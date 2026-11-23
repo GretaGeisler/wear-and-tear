@@ -1356,10 +1356,28 @@
       out.push("last click: " + lastHitInfo);
       box.textContent = out.join("\n");
     }, 500);
-
-  // ---- kein Zoomen: Pinch, Strg+Mausrad, Safari-Gesten ----
+  // ---- no zoom, no sideways swipe ----
+  // Exceptions: the 3D viewer (#viewer) and the big graph (#combo) on the stats page
+  // handle sideways finger movement themselves.
+  var swX = 0, swY = 0, swLock = "";
+  function swFree(t) {
+    return t && t.closest && t.closest("#viewer, #combo");
+  }
+  document.addEventListener("touchstart", function (e) {
+    if (e.touches.length !== 1) return;
+    swX = e.touches[0].clientX;
+    swY = e.touches[0].clientY;
+    swLock = "";
+  }, { passive: true });
   document.addEventListener("touchmove", function (e) {
-    if (e.touches && e.touches.length > 1) e.preventDefault();
+    // two fingers = pinch zoom: block
+    if (e.touches.length > 1) { e.preventDefault(); return; }
+    if (swFree(e.target)) return;
+    var dx = e.touches[0].clientX - swX, dy = e.touches[0].clientY - swY;
+    if (!swLock && (Math.abs(dx) > 4 || Math.abs(dy) > 4))
+      swLock = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    // the swipe started sideways: nothing happens
+    if (swLock === "x" && e.cancelable) e.preventDefault();
   }, { passive: false });
   ["gesturestart", "gesturechange", "gestureend"].forEach(function (n) {
     document.addEventListener(n, function (e) { e.preventDefault(); });
@@ -1367,6 +1385,5 @@
   window.addEventListener("wheel", function (e) {
     if (e.ctrlKey) e.preventDefault();
   }, { passive: false });
-
   }
 })();
