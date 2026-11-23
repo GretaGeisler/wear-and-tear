@@ -4,9 +4,9 @@
     <meta charset="utf-8" />
     <title>Worn – Wear and Tear</title>
     <meta
-  name="viewport"
-  content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
-/>
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="color-scheme" content="only light" />
     <link rel="stylesheet" href="/style.css" />
     <style>
@@ -163,29 +163,32 @@
         <div class="textblock upper" data-manual>
           <p>
             damaged {2} because {2} of {2} continuous {2} use<br />the condition
-            in which an object's original <br class="m" />quality or structural integrity has
-            gradually <br class="m" />diminished<br class="d" />as a result of repeated handling,<br class="m" />
+            in which an object's original <br class="m" />quality or structural
+            integrity has gradually <br class="m" />diminished<br class="d" />as
+            a result of repeated handling,<br class="m" />
             prolonged use, or ongoing physical stress.<br />Experiencing
-            progressive material loss through <br class="m" />mechanical and tribochemical
-            processes,<br>including friction-induced oxidation, surface <br class="m" />reactions,
-            and the detachment of microscopic particles.
+            progressive material loss through <br class="m" />mechanical and
+            tribochemical processes,<br />including friction-induced oxidation,
+            surface <br class="m" />reactions, and the detachment
+            <br class="m" />of microscopic particles.
           </p>
         </div>
 
         <div class="textblock lower" data-manual>
           <p>
-            Worn metal reflects the gradual effects <br class="m" />of repeated contact,
-            friction, and everyday use.<br />Its surface may show
-            <br />scratches, {2} abrasions, {2} scuff {2} marks, <br class="m" />{2} softened
-            {2} edges, {2} and {2} areas {2} where {2} the {2} finish {2} <br class="m" />has
-            {2} become {2} thinner.<br />Frequently handled or exposed areas <br class="m" />can
+            Worn metal reflects the gradual effects <br class="m" />of repeated
+            contact, friction, and everyday use.<br />Its surface may show
+            <br />scratches, {2} abrasions, {2} scuff {2} marks,
+            <br class="m" />{2} or {2} softened {2} and {2} damaged {2}
+            edges.<br />Frequently handled or exposed areas <br class="m" />can
             become smoother and more polished,<br />while less accessible
-            sections may <br class="m" />retain more of their original appearance.<br />This
-            creates subtle contrasts across the surface,<br />revealing {2} the
-            {2} different {2} ways {2} in {2} which {2} the <br class="m" />{2} material {2} has
-            {2} been {2} touched, {2} moved, {2} and {2} used.<br />The condition is not
-            necessarily <br class="m" />one of damage, but rather <br />a {2} visible {2} record
-            {2} of {2} physical {2} interaction.
+            sections may <br class="m" />retain more of their original
+            appearance.<br />This creates subtle contrasts across the
+            surface,<br />revealing {2} the {2} different {2} ways <br class="m" />{2} in {2}
+            which {2} the {2} material {2} has {2} been {2}
+            touched, <br class="m" />{2} moved, {2} and {2} used.<br />The condition is not
+            necessarily <br class="m" />one of damage, but rather <br />a {2}
+            visible {2} record {2} of {2} physical {2} interaction.
           </p>
         </div>
       </section>
@@ -243,7 +246,7 @@
           });
           flat.forEach(function (w) {
             var g = /^\{(?:(m|d):)?(\d*\.?\d+)\}$/.exec(w);
-                        if (g) {
+            if (g) {
               var on = !g[1] || (g[1] === "m") === !!mq.matches;
               var val = parseFloat(g[2]);
               // normale Lücken {2} werden auf dem Handy halbiert; {m:..} / {d:..} bleiben, wie du sie schreibst
