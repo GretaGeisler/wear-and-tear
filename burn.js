@@ -1356,5 +1356,17 @@
       out.push("last click: " + lastHitInfo);
       box.textContent = out.join("\n");
     }, 500);
+
+  // ---- kein Zoomen: Pinch, Strg+Mausrad, Safari-Gesten ----
+  document.addEventListener("touchmove", function (e) {
+    if (e.touches && e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+  ["gesturestart", "gesturechange", "gestureend"].forEach(function (n) {
+    document.addEventListener(n, function (e) { e.preventDefault(); });
+  });
+  window.addEventListener("wheel", function (e) {
+    if (e.ctrlKey) e.preventDefault();
+  }, { passive: false });
+
   }
 })();
