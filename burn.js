@@ -16,8 +16,8 @@
 
   var S = 6; // cell size in px
   var HALO = 10; // soft glow around a cursor burn
-  var GHOST_K = 0.4; // how strongly a text ghost shows (opacity = wear * this): big type
-  var GHOST_K_SMALL = 0.4; // ... and small type (under 28 px), lower = fainter
+  var GHOST_K = 0.7; // how strongly a text ghost shows (opacity = wear * this): big type
+  var GHOST_K_SMALL = 0.8; // ... and small type (under 28 px), lower = fainter
   var HALO_ALPHA = 0.3; // strongest the glow can get (lower = less "highlighted box" look)
   var BURN_UNIT = "word"; // what burns in when you click / rest on text: "word" or "line"
   var PUSH_MS = 1000; // how often your traces are sent to the server
@@ -28,13 +28,13 @@
   var STILL_BURN = 6; // ... with the weight of this many clicks
   var IMG_STILL_MS = 2000; // the PICTURE of a sub-page starts to burn in after this much total stillness
   var IMG_AT = 35; // seconds of stillness (beyond the first 10) until the picture is ~90 % burnt in (higher = slower)
-  var BURN_AT = 40; // speed of the burn-IN (ghosts, cursor trails): higher = slower
+  var BURN_AT = 20; // speed of the burn-IN (ghosts, cursor trails): higher = slower
   var WEAR_AT = 1000; // speed of the WEAR % counter only: higher = slower
   var DRAG_W = 0.08; // touch: weight of one drag sample (every 80 ms) in clicks
   var PRESS_MS = 350; // pressing (mouse button / finger) and holding still this long starts the strong burn
-  var PRESS_W = 0.6; // weight added every 100 ms while pressing = 6 clicks per second (higher = burns in faster)
-  var CLICK_W = 1,
-    HOVER_W = 0.15; // a click = 1 unit, 1 s of resting = 0.15 units
+  var PRESS_W = 1.5; // weight added every 100 ms while pressing = 15 clicks per second (higher = burns in faster)
+  var CLICK_W = 2,
+    HOVER_W = 0.3; // a click = 1 unit, 1 s of resting = 0.15 units
   // elements that can burn in: headings, paragraphs, quotes, list links, .text, or anything with data-burn
   var SEL =
     window.WT_SEL ||
@@ -1405,4 +1405,85 @@
       box.textContent = out.join("\n");
     }, 500);
   }
+  // ---- fast tapping: no double-tap zoom, no jump to the next screen ----
+  // Two taps within TAP_MS count as a burst. During a burst the scroll position is pinned and
+  // scroll-snap is switched off (otherwise the browser snaps to the next screen). A real swipe
+  // (finger moves more than 12 px) ends the burst at once, the page scrolls normally again.
+  var TAP_MS = 500,
+    tapT = 0,
+    tapY = 0,
+    tapPin = false,
+    tapMoved = false,
+    tapSX = 0,
+    tapSY = 0,
+    tapTimer = null,
+    lastEnd = 0;
+  function tapEnd() {
+    tapPin = false;
+    clearTimeout(tapTimer);
+    document.documentElement.style.scrollSnapType = "";
+  }
+  document.addEventListener("touchstart", function (e) {
+    if (e.touches.length !== 1) return;
+    var now = Date.now();
+    if (!tapPin) tapY = window.scrollY;
+    if (now - tapT < TAP_MS && !tapPin) {
+      tapPin = true;
+      document.documentElement.style.scrollSnapType = "none";
+    }
+    tapT = now;
+    tapMoved = false;
+    tapSX = e.touches[0].clientX;
+    tapSY = e.touches[0].clientY;
+    clearTimeout(tapTimer);
+    if (tapPin) tapTimer = setTimeout(tapEnd, 700);
+  }, { passive: true, capture: true });
+  document.addEventListener("touchmove", function (e) {
+    if (!tapPin || !e.touches.length) return;
+    var dx = e.touches[0].clientX - tapSX, dy = e.touches[0].clientY - tapSY;
+    if (Math.abs(dx) > 12 || Math.abs(dy) > 12) {
+      tapMoved = true;
+      tapEnd();
+    }
+  }, { passive: true, capture: true });
+  window.addEventListener("scroll", function () {
+    if (tapPin && !tapMoved && Math.abs(window.scrollY - tapY) > 0) window.scrollTo(0, tapY);
+  }, { passive: true });
+  // a second tap right after the first one would zoom: swallow it (links and buttons stay clickable)
+  document.addEventListener("touchend", function (e) {
+    var now = Date.now();
+    if (now - lastEnd < 350 && e.cancelable && !(e.target.closest && e.target.closest("a,button,input,label,.hud,#hud-l,#hud-r")))
+      e.preventDefault();
+    lastEnd = now;
+  }, { passive: false });
+
+  // ---- no zoom, no sideways swipe ----
+  // Exceptions: the 3D viewer (#viewer) and the big graph (#combo) on the stats page
+  // handle sideways finger movement themselves.
+  var swX = 0, swY = 0, swLock = "";
+  function swFree(t) {
+    return t && t.closest && t.closest("#viewer, #combo");
+  }
+  document.addEventListener("touchstart", function (e) {
+    if (e.touches.length !== 1) return;
+    swX = e.touches[0].clientX;
+    swY = e.touches[0].clientY;
+    swLock = "";
+  }, { passive: true });
+  document.addEventListener("touchmove", function (e) {
+    // two fingers = pinch zoom: block
+    if (e.touches.length > 1) { e.preventDefault(); return; }
+    if (swFree(e.target)) return;
+    var dx = e.touches[0].clientX - swX, dy = e.touches[0].clientY - swY;
+    if (!swLock && (Math.abs(dx) > 12 || Math.abs(dy) > 12))
+      swLock = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    // the swipe started sideways: nothing happens
+    if (swLock === "x" && e.cancelable) e.preventDefault();
+  }, { passive: false });
+  ["gesturestart", "gesturechange", "gestureend"].forEach(function (n) {
+    document.addEventListener(n, function (e) { e.preventDefault(); });
+  });
+  window.addEventListener("wheel", function (e) {
+    if (e.ctrlKey) e.preventDefault();
+  }, { passive: false });
 })();

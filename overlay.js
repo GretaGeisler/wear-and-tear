@@ -32,6 +32,9 @@
   var MIN_C1 = 150; // px: minimum width of column 1 (so long names never run into column 2), also the fallback
   var PAD = 2; // px above and below every entry (smaller = rows closer together)
   var MORE_GAP = 24; // px between the last entry and "Learn more about your traces" (smaller = closer)
+  var HIT_Y = 14; // px: the tappable area of the header row reaches this far above and below the text
+  var HIT_X = 8; // px: ... and this far to the left and right (makes it easy to hit with a finger)
+  var TAP_SLOP = 12; // px: a finger that moves less than this still counts as a tap
   var ARROW_FONT =
     "font-family:'DejaVu Sans','Segoe UI Symbol','Arial Unicode MS','Noto Sans Symbols2','Noto Sans Symbols',Arial,sans-serif;" +
     "font-style:normal;font-weight:400;font-variant-emoji:text;";
@@ -91,7 +94,10 @@
   /* ---------- styles ---------- */
   var ease = "cubic-bezier(.22,.61,.36,1)";
   var css =
-    ".hud{cursor:pointer}" +
+    ".hud{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}" +
+    /* bigger tappable area around the header row (invisible) */
+    "#hud-l::before,#hud-r::before{content:'';position:absolute;top:-" + HIT_Y + "px;bottom:-" + HIT_Y +
+    "px;left:-" + HIT_X + "px;right:-" + HIT_X + "px}" +
     "#wt-ov{position:fixed;inset:0;z-index:1500;overflow-y:auto;overscroll-behavior:contain;" +
     "visibility:hidden;pointer-events:none;transition:visibility 0s linear .5s}" +
     "#wt-ov.open{visibility:visible;pointer-events:auto;transition-delay:0s}" +
@@ -222,12 +228,49 @@
     else open();
   }
 
-  /* ---------- clicks ---------- */
+  /* ---------- clicks and taps ---------- */
   function onHeader(e) {
     return e.target && e.target.closest ? e.target.closest(TRIGGER) : null;
   }
 
-  // click on the header row: opens / closes the overlay and never navigates
+  // TOUCH: a tap is recognised on its own (finger down + up on the header row, hardly moved).
+  // This does not depend on the browser sending a "click" afterwards, which phones often
+  // skip when a page also reacts to touches (burn-in, scroll lock).
+  var lastTap = 0,
+    down = null;
+  window.addEventListener(
+    "pointerdown",
+    function (e) {
+      if (e.pointerType === "mouse" || !onHeader(e)) {
+        down = null;
+        return;
+      }
+      down = { x: e.clientX, y: e.clientY, t: Date.now() };
+    },
+    true
+  );
+  window.addEventListener(
+    "pointerup",
+    function (e) {
+      if (!down || e.pointerType === "mouse") return;
+      var d = down;
+      down = null;
+      if (Math.abs(e.clientX - d.x) > TAP_SLOP || Math.abs(e.clientY - d.y) > TAP_SLOP) return;
+      if (Date.now() - d.t > 700) return;
+      lastTap = Date.now();
+      toggle();
+    },
+    true
+  );
+  window.addEventListener(
+    "pointercancel",
+    function () {
+      down = null;
+    },
+    true
+  );
+
+  // MOUSE (and every click that is not already handled as a tap): opens / closes the overlay and never navigates
   // (window + capture phase: runs before every other click handler on the page)
   window.addEventListener(
     "click",
@@ -235,6 +278,7 @@
       if (!onHeader(e)) return;
       e.preventDefault();
       e.stopImmediatePropagation();
+      if (Date.now() - lastTap < 800) return; // this touch was already handled above
       toggle();
     },
     true
@@ -242,6 +286,7 @@
 
   // an empty spot closes the layer, the link goes on to the stats page
   ov.addEventListener("click", function (e) {
+    if (Date.now() - lastTap < 800) return; // the click that follows the opening tap
     if (e.target === ov || e.target === inner || e.target === bg) close();
   });
   document.addEventListener("keydown", function (e) {
