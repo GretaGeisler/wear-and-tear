@@ -4,9 +4,9 @@
     <meta charset="utf-8" />
     <title>Neglected – Wear and Tear</title>
     <meta
-  name="viewport"
-  content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
-/>
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="color-scheme" content="only light" />
     <link rel="stylesheet" href="/style.css" />
     <style>
@@ -163,29 +163,32 @@
         <div class="textblock upper" data-manual>
           <p>
             not {2} receiving {2} enough {2} care {2} or {2} attention<br />the
-            condition resulting from insufficient maintenance, <br class="m" />supervision, or
-            consideration,<br />which may lead to deterioration, reduced<br class="m" />
+            condition resulting from insufficient <br class="m" />maintenance,
+            supervision, or consideration,<br />which may lead to deterioration,
+            reduced<br class="m" />
             performance, or a decline in overall quality.<br />Subjected to
-            prolonged environmental <br class="m" />exposure without adequate protective
-            treatment, <br />potentially accelerating oxidation, <br class="m" />hydrolysis,
-            contamination, and chemical instability.
+            prolonged environmental <br class="m" />exposure without adequate
+            protective<br class="m" />
+            treatment, <br class="d" />potentially accelerating
+            <br class="m" />oxidation, hydrolysis, contamination,
+            <br class="m" />and chemical instability.
           </p>
         </div>
 
         <div class="textblock lower" data-manual>
           <p>
-            Neglected metal reflects a prolonged absence <br class="m" />of care, cleaning, or
-            maintenance, <br class="m" />allowing its surface and protective qualities <br class="m" />to
-            deteriorate over time.<br />Dust, dirt, moisture, and other
-            environmental residues <br class="m" />may accumulate, while the original finish can
-            become <br />dull, {2} stained, {2} or {2} uneven.<br />Depending on the surrounding
-            conditions, <br class="m" />oxidation and corrosion may develop and spread,<br class="m" />
-            sometimes leaving visible deposits, <br class="m" />rough textures, or areas of
-            discolouration.<br />Protective coatings may peel, deteriorate, <br class="m" />or
-            disappear entirely, exposing the underlying <br class="m" />metal to further
-            environmental damage. <br>The surface can appear irregular and
-            unmaintained, <br class="m" />with different stages of deterioration <br class="m" />visible across
-            the material.
+            Neglected metal reflects a prolonged absence <br class="m" />of
+            care, cleaning, or maintenance, <br class="m" />allowing its surface
+            and protective qualities <br class="m" />to deteriorate over
+            time.<br />Dust, dirt, moisture, and other environmental <br class="m" />residues
+            may accumulate, <br class="m" />while the original finish can become
+            <br />dull, {2} stained, {2} or {2} uneven.<br />Depending on the
+            surrounding conditions, <br class="m" />oxidation and corrosion may
+            develop and spread,<br class="m" />
+            sometimes leaving visible deposits, <br class="m" />rough textures,
+            or areas of discolouration.<br />Protective coatings may peel,
+            deteriorate, <br class="m" />or disappear entirely, exposing the
+            underlying <br class="m" />metal to further environmental damage.
           </p>
         </div>
       </section>
@@ -243,7 +246,7 @@
           });
           flat.forEach(function (w) {
             var g = /^\{(?:(m|d):)?(\d*\.?\d+)\}$/.exec(w);
-                        if (g) {
+            if (g) {
               var on = !g[1] || (g[1] === "m") === !!mq.matches;
               var val = parseFloat(g[2]);
               // normale Lücken {2} werden auf dem Handy halbiert; {m:..} / {d:..} bleiben, wie du sie schreibst
