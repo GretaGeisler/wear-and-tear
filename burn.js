@@ -16,8 +16,8 @@
 
   var S = 6; // cell size in px
   var HALO = 10; // soft glow around a cursor burn
-  var GHOST_K = 0.7; // how strongly a text ghost shows (opacity = wear * this): big type
-  var GHOST_K_SMALL = 0.7; // ... and small type (under 28 px), lower = fainter
+  var GHOST_K = 0.4; // how strongly a text ghost shows (opacity = wear * this): big type
+  var GHOST_K_SMALL = 0.4; // ... and small type (under 28 px), lower = fainter
   var HALO_ALPHA = 0.3; // strongest the glow can get (lower = less "highlighted box" look)
   var BURN_UNIT = "word"; // what burns in when you click / rest on text: "word" or "line"
   var PUSH_MS = 1000; // how often your traces are sent to the server
@@ -31,8 +31,10 @@
   var BURN_AT = 40; // speed of the burn-IN (ghosts, cursor trails): higher = slower
   var WEAR_AT = 1000; // speed of the WEAR % counter only: higher = slower
   var DRAG_W = 0.08; // touch: weight of one drag sample (every 80 ms) in clicks
+  var PRESS_MS = 350; // pressing (mouse button / finger) and holding still this long starts the strong burn
+  var PRESS_W = 0.6; // weight added every 100 ms while pressing = 6 clicks per second (higher = burns in faster)
   var CLICK_W = 1,
-    HOVER_W = 0.25; // a click = 1 unit, 1 s of resting = 0.15 units
+    HOVER_W = 0.15; // a click = 1 unit, 1 s of resting = 0.15 units
   // elements that can burn in: headings, paragraphs, quotes, list links, .text, or anything with data-burn
   var SEL =
     window.WT_SEL ||
@@ -159,6 +161,8 @@
     loadT = Date.now(),
     restDone = false,
     writing = false;
+  var pressing = false, // mouse button / finger is down right now
+    pressSince = 0;
   var myId = null,
     myFirst = 0,
     myRank = null,
@@ -493,6 +497,11 @@
     function (e) {
       var c = cellAt(e);
       if (!c) return;
+      pressing = true;
+      pressSince = Date.now();
+      curCell = c;
+      lx = e.clientX;
+      ly = e.clientY;
       add(me.clicks, c, 1);
       add(delta.clicks, c, 1);
       add(me.clicks, PK, 1);
@@ -607,6 +616,35 @@
   document.addEventListener("touchmove", touchMove, passiveCap);
   document.addEventListener("touchend", touchEnd, passiveCap);
   document.addEventListener("touchcancel", touchEnd, passiveCap);
+
+  // pressing and holding: stronger burn (see the interval below)
+  function release() {
+    pressing = false;
+  }
+  document.addEventListener("pointerup", release, true);
+  document.addEventListener("pointercancel", release, true);
+  document.addEventListener("touchend", release, passiveCap);
+  document.addEventListener("touchcancel", release, passiveCap);
+  window.addEventListener("blur", release);
+  // long press on a phone must not open the context menu
+  if (window.matchMedia && matchMedia("(pointer: coarse)").matches)
+    document.addEventListener("contextmenu", function (e) {
+      e.preventDefault();
+    });
+
+  // long press: while the button / finger is down and stays on the spot, it burns in much faster
+  setInterval(function () {
+    if (!pressing || !curCell || document.hidden || Date.now() - lastScroll < 400) return;
+    var held = Date.now() - Math.max(pressSince, restSince);
+    if (held < PRESS_MS) return;
+    add(me.clicks, curCell, PRESS_W);
+    add(delta.clicks, curCell, PRESS_W);
+    add(me.clicks, PK, PRESS_W);
+    add(delta.clicks, PK, PRESS_W);
+    burnAt(lx, ly, PRESS_W, "clicks");
+    dirty = true;
+    redraw = true;
+  }, 100);
 
   // hover burn: only while the mouse is RESTING on a spot (not while it moves).
   // After STILL_BURN_MS on the same spot it burns in at once (like a few clicks).
@@ -733,6 +771,17 @@
     for (var j = 0; j < a.length && j < b.length; j++) copyLook(a[j], b[j]);
   }
 
+  // only the strength changed (e.g. while clicking a lot): no rebuild, just update the existing copies
+  function tune(c, pos, a) {
+    var fs = parseFloat(c.style.fontSize) || 0;
+    c.style.left = pos[0] + a * 1.5 + "px";
+    c.style.top = pos[1] + a * 1.5 + "px";
+    c.style.opacity = Math.min(
+      1,
+      a * (c.tagName === "IMG" ? 0.8 : fs && fs < 28 ? GHOST_K_SMALL : GHOST_K),
+    );
+  }
+
   function place(c, pos, a) {
     var fs = parseFloat(c.style.fontSize) || 0;
     c.style.cssText =
@@ -787,9 +836,7 @@
         if (!shot) continue; // no picture of this graph taken yet
       }
       todo.push({ el: l[i], a: a, pos: pos, shot: shot });
-      sig.push(
-        k + ":" + a.toFixed(2) + ":" + pos.join(",") + (shot ? ":c" + shot.length : ""),
-      );
+      sig.push(k + ":" + pos.join(",") + (shot ? ":c" + shot.length : ""));
     }
 
     var seen = {};
@@ -807,14 +854,15 @@
           if (!sh) continue;
         }
         todo.push({ sn: ss, a: aa, pos: pp, shot: sh });
-        sig.push(
-          key + ":" + aa.toFixed(2) + ":" + pp.join(",") + ":s" + (sh ? sh.length : ""),
-        );
+        sig.push(key + ":" + pp.join(",") + ":s" + (sh ? sh.length : ""));
       }
     });
 
     var s = sig.join("|");
-    if (s === ghostSig) return;
+    if (s === ghostSig && gh.children.length === todo.length) {
+      for (var u = 0; u < todo.length; u++) tune(gh.children[u], todo[u].pos, todo[u].a);
+      return;
+    }
     ghostSig = s;
     gh.textContent = "";
 
@@ -1356,34 +1404,5 @@
       out.push("last click: " + lastHitInfo);
       box.textContent = out.join("\n");
     }, 500);
-  // ---- no zoom, no sideways swipe ----
-  // Exceptions: the 3D viewer (#viewer) and the big graph (#combo) on the stats page
-  // handle sideways finger movement themselves.
-  var swX = 0, swY = 0, swLock = "";
-  function swFree(t) {
-    return t && t.closest && t.closest("#viewer, #combo");
-  }
-  document.addEventListener("touchstart", function (e) {
-    if (e.touches.length !== 1) return;
-    swX = e.touches[0].clientX;
-    swY = e.touches[0].clientY;
-    swLock = "";
-  }, { passive: true });
-  document.addEventListener("touchmove", function (e) {
-    // two fingers = pinch zoom: block
-    if (e.touches.length > 1) { e.preventDefault(); return; }
-    if (swFree(e.target)) return;
-    var dx = e.touches[0].clientX - swX, dy = e.touches[0].clientY - swY;
-    if (!swLock && (Math.abs(dx) > 4 || Math.abs(dy) > 4))
-      swLock = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
-    // the swipe started sideways: nothing happens
-    if (swLock === "x" && e.cancelable) e.preventDefault();
-  }, { passive: false });
-  ["gesturestart", "gesturechange", "gestureend"].forEach(function (n) {
-    document.addEventListener(n, function (e) { e.preventDefault(); });
-  });
-  window.addEventListener("wheel", function (e) {
-    if (e.ctrlKey) e.preventDefault();
-  }, { passive: false });
   }
 })();
