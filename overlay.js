@@ -208,6 +208,9 @@
     layout();
     build();
     update();
+    // the rows were only just created: let the browser draw them in their closed state first,
+    // otherwise there is nothing to animate from and the first opening just pops up
+    void inner.offsetHeight;
     ov.classList.add("open");
     ov.setAttribute("aria-hidden", "false");
     document.body.classList.add("wt-open");
