@@ -236,7 +236,7 @@
         // words -> tokens:  {t, track}  a word (track = extra letter spacing in em, 0 = normal)
         //                   {gap}       an extra gap in em
         // {2}  {m:2}  {d:3}  = gaps,   *word*  *0.8:word*  *two words*  = wide letter spacing
-        var MOB_GAP = 0.5; // mobile: Lücken ohne m:/d: zählen nur so viel (0.5 = {2} wird zu 1em)
+        var MOB_GAP = 0.25; // mobile: Lücken ohne m:/d: zählen nur so viel (0.5 = {2} wird zu 1em)
         var TRACK = 0.35; // set per block from data-track
         var tr = 0; // letter spacing that is currently "open" (a *...* can run over several lines)
         function parse(words) {
