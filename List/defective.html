@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <title>Defective – Wear and Tear</title>
-   <meta
-  name="viewport"
-  content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
-/>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="color-scheme" content="only light" />
     <link rel="stylesheet" href="/style.css" />
     <style>
@@ -162,28 +162,36 @@
       <section class="textsec" id="text">
         <div class="textblock upper" data-manual>
           <p>
-            containing {2} a {2} fault, {2} or {2} <br class="m" />not {2} working {2}
-            correctly.<br />the condition in which an item or component <br class="m" />fails to
-            meet the expected quality, <br class="m" />performance, or operational
-            requirements,<br />potentially affecting its reliability,<br class="m" />
+            containing {2} a {2} fault, {2} or {2} <br class="m" />not {2}
+            working {2} correctly.<br />the condition in which an item or
+            component <br class="m" />fails to meet the expected quality,
+            <br class="m" />performance, or operational requirements,<br />potentially
+            affecting its reliability,<br class="m" />
             functionality, or overall efficiency.<br />Characterized by
-            irregularities in chemical <br class="m" />composition, molecular structure, or
-            phase distribution<br />that alter the material's intrinsic properties<br class="m" />
-            and expected performance.
+            irregularities in chemical <br class="m" />composition, molecular
+            structure, or phase <br class="m" />distribution<br class="d" />that
+            alter the material's <br class="m" />intrinsic properties and
+            expected performance.
           </p>
         </div>
 
         <div class="textblock lower" data-manual>
           <p>
-            Defective metal contains visible or concealed <br class="m" />imperfections that
-            compromise its intended <br class="m" />appearance, {2} quality, {2} or {2} structural {2} 
-            integrity.<br />Surface defects can include scratches, dents,<br class="m" />
-            cracks, pits, uneven coatings, discolouration, <br class="m" />or inconsistencies in
-            texture and finish.<br />Other imperfections may occur beneath <br class="m" />the
-            surface, such as internal cracks, <br class="m" />inclusions, porosity, or
-            weaknesses within <br class="m" />the material's structure.<br />Depending on their
-            nature and severity, <br class="m" />these defects can affect the metal's strength,<br class="m" />
-            durability, {2} resistance {2} to{2} corrosion, <br class="m" />and {2} overall {2} functionality.
+            Defective metal contains visible or concealed
+            <br class="m" />imperfections that compromise its intended
+            <br class="m" />appearance, {2} quality, {2} or {2} structural {2}
+            integrity.<br />Surface defects can include scratches, dents,<br
+              class="m"
+            />
+            cracks, pits, uneven coatings, discolouration, <br class="m" />or
+            inconsistencies in texture and finish.<br />Other imperfections may
+            occur beneath <br class="m" />the surface, such as internal cracks,
+            <br class="m" />inclusions, porosity, or weaknesses within
+            <br class="m" />the material's structure.<br />Depending on their
+            nature and severity, <br class="m" />these defects can affect the
+            metal's strength,<br class="m" />
+            durability, {2} resistance {2} to{2} corrosion, <br class="m" />and
+            {2} overall {2} functionality.
           </p>
         </div>
       </section>
@@ -241,7 +249,7 @@
           });
           flat.forEach(function (w) {
             var g = /^\{(?:(m|d):)?(\d*\.?\d+)\}$/.exec(w);
-                       if (g) {
+            if (g) {
               var on = !g[1] || (g[1] === "m") === !!mq.matches;
               var val = parseFloat(g[2]);
               // normale Lücken {2} werden auf dem Handy halbiert; {m:..} / {d:..} bleiben, wie du sie schreibst
